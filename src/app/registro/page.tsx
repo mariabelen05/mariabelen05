@@ -69,6 +69,18 @@ export default function RegistroPage() {
             </select>
           </label>
 
+          <label className="flex items-start gap-2 text-xs text-text-faint">
+            <input type="checkbox" name="aceptaPrivacidad" required className="mt-0.5" />
+            <span>
+              Acepto la{" "}
+              <Link href="/privacidad" target="_blank" className="font-semibold text-primary hover:text-primary-hover">
+                Política de Privacidad
+              </Link>{" "}
+              de Aulera, incluyendo que el texto de los documentos que suba puede enviarse a la API de
+              Claude para generar sugerencias.
+            </span>
+          </label>
+
           {state?.error && (
             <p className="rounded-[10px] bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
               {state.error}

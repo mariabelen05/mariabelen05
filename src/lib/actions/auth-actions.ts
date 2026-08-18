@@ -34,6 +34,9 @@ export async function registrarDocente(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
+  if (formData.get("aceptaPrivacidad") !== "on") {
+    return { error: "Tenés que aceptar la Política de Privacidad para crear tu cuenta." };
+  }
 
   const { nombre, email, password, edad, provincia, modalidad } = parsed.data;
   const emailNorm = email.toLowerCase().trim();
@@ -53,6 +56,7 @@ export async function registrarDocente(
       edad: edad ? Number(edad) : null,
       provincia: provincia || null,
       modalidad: modalidad || null,
+      consintioPrivacidadEn: new Date(),
     },
   });
 

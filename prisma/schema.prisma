@@ -24,6 +24,7 @@ model Docente {
   provincia    String?
   modalidad    String? // aula, rural, plurigrado, etc. (Paso 1 onboarding)
   materias     String? // JSON-encoded string[]
+  consintioPrivacidadEn DateTime? // timestamp of explicit privacy-policy acceptance at signup
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

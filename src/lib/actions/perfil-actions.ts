@@ -1,8 +1,9 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { unlink } from "node:fs/promises";
 import { prisma } from "@/lib/prisma";
-import { requireDocente } from "@/lib/actions/session-actions";
+import { requireDocente, signOutAction } from "@/lib/actions/session-actions";
 import { revalidatePath } from "next/cache";
 
 export type PerfilState = { error?: string; success?: string } | undefined;
@@ -37,4 +38,33 @@ export async function cambiarPassword(_prev: PerfilState, formData: FormData): P
   const passwordHash = await bcrypt.hash(nueva, 10);
   await prisma.docente.update({ where: { id: docente.id }, data: { passwordHash } });
   return { success: "Contraseña actualizada." };
+}
+
+// Derecho de supresión (Ley 25.326, art. 16): borra la cuenta y todo el
+// contenido propio del docente. Ver docs/privacidad-ley-25326.md.
+export async function eliminarCuenta() {
+  const docente = await requireDocente();
+
+  const [documentos, recursos] = await Promise.all([
+    prisma.documento.findMany({ where: { docenteId: docente.id }, select: { storagePath: true } }),
+    prisma.recurso.findMany({ where: { docenteId: docente.id, storagePath: { not: null } }, select: { storagePath: true } }),
+  ]);
+
+  await prisma.$transaction([
+    prisma.planActivity.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.itemBanco.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.evaluacion.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.documento.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.recurso.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.eventoCalendario.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.planCollaborator.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.planificacion.deleteMany({ where: { docenteId: docente.id } }),
+    prisma.docente.delete({ where: { id: docente.id } }),
+  ]);
+
+  await Promise.all(
+    [...documentos, ...recursos].map((f) => (f.storagePath ? unlink(f.storagePath).catch(() => {}) : null))
+  );
+
+  await signOutAction();
 }

@@ -26,24 +26,11 @@ function initials(nombre: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "U";
 }
 
-export function AppShell({
-  nombre,
-  email,
-  children,
-}: {
-  nombre: string;
-  email: string;
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [avatarOpen, setAvatarOpen] = useState(false);
-
+function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  const Sidebar = ({ onNavigate }: { onNavigate?: () => void }) => (
+  return (
     <div className="flex h-full w-[236px] shrink-0 flex-col bg-card px-4 py-6">
       <div className="flex items-center gap-2.5 px-2 pb-7">
         <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-primary text-[17px] font-extrabold text-white">
@@ -79,18 +66,33 @@ export function AppShell({
       </div>
     </div>
   );
+}
+
+export function AppShell({
+  nombre,
+  email,
+  children,
+}: {
+  nombre: string;
+  email: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen w-full bg-app-bg">
       <div className="hidden border-r border-border lg:block">
-        <Sidebar />
+        <Sidebar pathname={pathname} />
       </div>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-30 flex lg:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-[rgba(30,35,64,0.4)]" />
           <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
-            <Sidebar onNavigate={() => setMobileOpen(false)} />
+            <Sidebar pathname={pathname} onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       )}

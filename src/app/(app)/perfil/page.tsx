@@ -1,6 +1,7 @@
 import { requireDocente } from "@/lib/actions/session-actions";
 import { PerfilForm } from "./perfil-form";
 import { PasswordForm } from "./password-form";
+import { EliminarCuenta } from "./eliminar-cuenta";
 
 const PROVINCIAS = [
   "Buenos Aires", "CABA", "Catamarca", "Chaco", "Chubut", "Córdoba",
@@ -29,6 +30,7 @@ export default async function PerfilPage() {
 
       <PerfilForm docente={docente} provincias={PROVINCIAS} modalidades={MODALIDADES} />
       <PasswordForm />
+      <EliminarCuenta />
 
       <div className="rounded-2xl border border-border bg-card p-5 text-xs text-text-faint">
         Aulera guarda tus datos personales (nombre, email y, si cargás documentos institucionales,

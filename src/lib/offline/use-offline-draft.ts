@@ -22,7 +22,9 @@ export function useOfflineDraft<T>(
   const [borradorRecuperado, setBorradorRecuperado] = useState<T | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const guardarRef = useRef(guardarEnServidor);
-  guardarRef.current = guardarEnServidor;
+  useEffect(() => {
+    guardarRef.current = guardarEnServidor;
+  }, [guardarEnServidor]);
 
   // Recover any draft from a session that ended without syncing.
   useEffect(() => {

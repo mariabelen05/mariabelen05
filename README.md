@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aulera
 
-## Getting Started
+Planificaciones docentes asistidas por IA. Next.js (App Router) + Prisma +
+Auth.js, con la API de Claude como el motor de generación pedagógica.
 
-First, run the development server:
+El diseño visual viene de un proyecto de Claude Design importado a este
+repo; este README cubre todo lo que ese diseño no resuelve por sí solo
+(base de datos, autenticación real, integración con la API de Claude,
+extracción/OCR de documentos, exportación real a PDF/Word, co-planificación,
+calendario de feriados y guardado offline).
+
+## Puesta en marcha
 
 ```bash
+npm install
+cp .env.example .env      # completá ANTHROPIC_API_KEY y un AUTH_SECRET propio
+npx prisma migrate dev    # crea prisma/dev.db (SQLite) con el esquema
+npm run db:seed           # carga el calendario de feriados 2026
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variables de entorno (`.env`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Para qué |
+|---|---|
+| `DATABASE_URL` | Conexión de Prisma. Por defecto SQLite local (`file:./dev.db`). |
+| `AUTH_SECRET` | Firma las sesiones de Auth.js. Generá una propia (`openssl rand -base64 32`) antes de producción. |
+| `ANTHROPIC_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). |
+| `ANTHROPIC_MODEL` | Modelo a usar (default `claude-sonnet-4-5`). |
 
-## Learn More
+## Qué hace cada parte
 
-To learn more about Next.js, take a look at the following resources:
+- **Base de datos** (`prisma/schema.prisma`): docentes, planificaciones (con
+  estado por paso + versión final), colaboradores, documentos, evaluaciones
+  + banco de preguntas, recursos, eventos de calendario y feriados.
+- **Autenticación** (`src/lib/auth.ts`): Auth.js con Credentials provider
+  sobre la tabla `Docente` (contraseña hasheada con bcrypt). Cada acción de
+  servidor verifica ownership antes de leer o escribir (`requireDocente`,
+  `getPlanConAcceso`).
+- **IA** (`src/lib/planificacion-ai.ts`, `src/lib/anthropic.ts`): llamadas
+  reales a la API de Claude para cada paso del asistente. Todo lo generado
+  se guarda con `estado: "sugerencia"` y el docente lo edita/aprueba
+  explícitamente — nunca se presenta como una decisión ya tomada. Si hay
+  documentos cargados y vinculados a la planificación, su texto extraído se
+  pasa como contexto; si no, el prompt se lo aclara al modelo para que no
+  invente contenido normativo.
+- **Documentos** (`src/lib/document-extraction.ts`): extracción real de
+  texto — PDF (pdf-parse), Word (mammoth), imágenes vía OCR
+  (tesseract.js, español + inglés). Los estados Procesado/Procesando/Error
+  reflejan el resultado real, no un mock. Limitación conocida: un PDF
+  escaneado sin capa de texto no se convierte automáticamente a imagen
+  para OCR — hay que subir esas páginas como imagen.
+- **Exportación** (`src/app/api/planificaciones/[id]/export/route.ts`):
+  genera un PDF real (pdfkit) y un .docx real (paquete `docx`) a partir
+  del contenido aprobado, no una captura de pantalla.
+- **Co-planificación**: invitar por email con rol `EDITOR` o `VISOR`,
+  bloqueado server-side (no solo en la UI). Ver
+  `src/lib/actions/planificacion-actions.ts`.
+- **Calendario**: `prisma/seed.ts` carga a mano el calendario 2026
+  (nacional + ejemplos provinciales) — no hay integración con una fuente
+  oficial en vivo. Detalle en `docs/calendario-feriados.md`.
+- **Modo de baja conectividad**: `src/lib/offline/` guarda en IndexedDB
+  cada cambio de los pasos 1–3 y sincroniza solo cuando hay conexión;
+  si una sesión se corta antes de sincronizar, la próxima visita ofrece
+  recuperar ese borrador.
+- **Privacidad**: `/privacidad` (resumen para el usuario) y
+  `docs/privacidad-ley-25326.md` (checklist técnico de qué pide la Ley
+  25.326 y qué falta antes de un lanzamiento real — no es asesoramiento
+  legal).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Comandos útiles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev        # servidor de desarrollo
+npm run build      # build de producción
+npm run lint       # ESLint
+npx prisma studio  # explorar la base de datos con una UI
+npm run db:seed    # recargar el calendario de feriados
+```
 
-## Deploy on Vercel
+## Producción
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Para desplegar con usuarios reales:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Cambiá el `datasource` de `prisma/schema.prisma` a Postgres (o el motor
+   que uses) y actualizá `DATABASE_URL`.
+2. Generá un `AUTH_SECRET` real y cargalo como secreto del hosting, no en
+   un `.env` versionado.
+3. Configurá `ANTHROPIC_API_KEY` como secreto del hosting.
+4. Los archivos subidos (`uploads/`) hoy se guardan en disco local — para
+   un despliegue con múltiples instancias o serverless, migrar a un
+   almacenamiento de objetos (S3 o similar).
+5. Revisá `docs/privacidad-ley-25326.md` antes de operar con datos
+   personales reales.
