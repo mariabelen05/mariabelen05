@@ -1,0 +1,29 @@
+import { getPlanConAcceso } from "@/lib/actions/planificacion-actions";
+import { StepLayout } from "@/components/planificacion/step-layout";
+import { Paso1Editor } from "./paso1-editor";
+import type { ObjetivosContenidos } from "@/lib/planificacion-types";
+
+export default async function Paso1Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { plan, rol } = await getPlanConAcceso(id);
+
+  const contenido = plan.objetivosContenidos
+    ? (JSON.parse(plan.objetivosContenidos) as ObjetivosContenidos)
+    : null;
+
+  return (
+    <StepLayout
+      planId={id}
+      titulo={plan.titulo}
+      current={1}
+      estados={[plan.paso1Estado, plan.paso2Estado, plan.paso3Estado, plan.paso4Estado]}
+    >
+      <Paso1Editor
+        planId={id}
+        contextoLibre={plan.contextoLibre ?? ""}
+        initialContenido={contenido}
+        readOnly={rol === "VISOR"}
+      />
+    </StepLayout>
+  );
+}
