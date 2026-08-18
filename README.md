@@ -17,10 +17,10 @@ ninguna acción que toque la base). Para local, la forma más simple es
 al segundo bloque.
 
 ```bash
-npm install
+npm install                   # el postinstall corre `prisma generate` solo
 cp .env.example .env          # completá ANTHROPIC_API_KEY y un AUTH_SECRET propio
 docker compose up -d          # levanta Postgres local en :5432 (o usá el tuyo)
-npx prisma migrate deploy     # aplica el esquema
+npm run build                 # aplica el esquema (prisma migrate deploy) y build
 npm run db:seed               # carga el calendario de feriados 2026
 npm run dev
 ```
@@ -31,25 +31,39 @@ Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 
 | Variable | Para qué |
 |---|---|
-| `DATABASE_URL` | Conexión de Prisma a Postgres. Local por defecto: `postgresql://aulera:aulera@localhost:5432/aulera` (la crea `docker compose up -d`). |
+| `DATABASE_URL` | Conexión **pooleada** (PgBouncer) que usa la app para las queries normales. Local por defecto: `postgresql://aulera:aulera@localhost:5432/aulera` (la crea `docker compose up -d`). |
+| `DIRECT_URL` | Conexión **directa**, sin pooler — la usa `prisma migrate deploy` (necesita un advisory lock que PgBouncer en modo transacción no soporta). En local, mismo valor que `DATABASE_URL`. |
 | `AUTH_SECRET` | Firma las sesiones de Auth.js. **Sin esto, la app tira "problema con la configuración del servidor" apenas entrás** (Auth.js la exige en cuanto corre en modo producción). Generá una propia con `openssl rand -base64 32`. |
 | `ANTHROPIC_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). |
 | `ANTHROPIC_MODEL` | Modelo a usar (default `claude-sonnet-4-5`). |
 
 ### Deploy en Vercel + Supabase
 
-1. En Vercel → Settings → Environment Variables, cargá `DATABASE_URL`
-   (el connection string de Supabase — usá el de **connection pooling**,
-   puerto 6543, no el directo 5432, si tu plan de Vercel es serverless),
+Las migraciones se aplican solas: `npm run build` corre
+`prisma migrate deploy && next build` (ver `package.json`), así que cada
+deploy de Vercel deja el esquema al día antes de compilar. No hace falta
+correr nada a mano ni pegar el connection string en ningún lado.
+
+1. En Supabase → Settings → Database → Connection string, copiá **dos**
+   URLs:
+   - **Transaction pooler** (puerto 6543) → variable `DATABASE_URL`.
+   - **Direct connection** (puerto 5432) → variable `DIRECT_URL`.
+2. En Vercel → Settings → Environment Variables, cargá esas dos más
    `AUTH_SECRET` y `ANTHROPIC_API_KEY`. No hace falta `AUTH_URL` ni
    `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel solo.
-2. Aplicá las migraciones **desde tu máquina**, nunca pegando el
-   connection string en un chat:
-   ```bash
-   DATABASE_URL="<tu connection string de Supabase>" npx prisma migrate deploy
-   ```
-3. (Opcional) `DATABASE_URL="..." npm run db:seed` para cargar el
-   calendario de feriados en producción.
+3. Redeploy (o el próximo push a la rama). El log del build va a mostrar
+   `prisma migrate deploy` aplicando lo pendiente antes de `next build`.
+4. (Opcional, una sola vez) `DATABASE_URL="..." npm run db:seed` desde tu
+   máquina para cargar el calendario de feriados en producción — el seed
+   no está en el flujo de build a propósito, para no repetirlo en cada
+   deploy.
+
+**Nota:** correr una migración automáticamente en cada build es cómodo
+pero tiene un costo — si una migración tiene un error, se aplica sola
+contra producción en el próximo push. Para una app en esta etapa está
+bien; si más adelante el equipo crece o las migraciones se vuelven más
+delicadas, conviene pasar a un paso manual o a un gate de CI antes del
+deploy.
 
 ## Qué hace cada parte
 
