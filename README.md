@@ -11,11 +11,17 @@ calendario de feriados y guardado offline).
 
 ## Puesta en marcha
 
+La base es PostgreSQL (mismo motor que producción — sin esto no arranca
+ninguna acción que toque la base). Para local, la forma más simple es
+`docker compose up -d`; si preferís un Postgres ya instalado, andá directo
+al segundo bloque.
+
 ```bash
 npm install
-cp .env.example .env      # completá ANTHROPIC_API_KEY y un AUTH_SECRET propio
-npx prisma migrate dev    # crea prisma/dev.db (SQLite) con el esquema
-npm run db:seed           # carga el calendario de feriados 2026
+cp .env.example .env          # completá ANTHROPIC_API_KEY y un AUTH_SECRET propio
+docker compose up -d          # levanta Postgres local en :5432 (o usá el tuyo)
+npx prisma migrate deploy     # aplica el esquema
+npm run db:seed               # carga el calendario de feriados 2026
 npm run dev
 ```
 
@@ -25,10 +31,25 @@ Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 
 | Variable | Para qué |
 |---|---|
-| `DATABASE_URL` | Conexión de Prisma. Por defecto SQLite local (`file:./dev.db`). |
-| `AUTH_SECRET` | Firma las sesiones de Auth.js. Generá una propia (`openssl rand -base64 32`) antes de producción. |
+| `DATABASE_URL` | Conexión de Prisma a Postgres. Local por defecto: `postgresql://aulera:aulera@localhost:5432/aulera` (la crea `docker compose up -d`). |
+| `AUTH_SECRET` | Firma las sesiones de Auth.js. **Sin esto, la app tira "problema con la configuración del servidor" apenas entrás** (Auth.js la exige en cuanto corre en modo producción). Generá una propia con `openssl rand -base64 32`. |
 | `ANTHROPIC_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). |
 | `ANTHROPIC_MODEL` | Modelo a usar (default `claude-sonnet-4-5`). |
+
+### Deploy en Vercel + Supabase
+
+1. En Vercel → Settings → Environment Variables, cargá `DATABASE_URL`
+   (el connection string de Supabase — usá el de **connection pooling**,
+   puerto 6543, no el directo 5432, si tu plan de Vercel es serverless),
+   `AUTH_SECRET` y `ANTHROPIC_API_KEY`. No hace falta `AUTH_URL` ni
+   `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel solo.
+2. Aplicá las migraciones **desde tu máquina**, nunca pegando el
+   connection string en un chat:
+   ```bash
+   DATABASE_URL="<tu connection string de Supabase>" npx prisma migrate deploy
+   ```
+3. (Opcional) `DATABASE_URL="..." npm run db:seed` para cargar el
+   calendario de feriados en producción.
 
 ## Qué hace cada parte
 
@@ -82,15 +103,11 @@ npm run db:seed    # recargar el calendario de feriados
 
 ## Producción
 
-Para desplegar con usuarios reales:
+Para desplegar con usuarios reales, además de lo de arriba:
 
-1. Cambiá el `datasource` de `prisma/schema.prisma` a Postgres (o el motor
-   que uses) y actualizá `DATABASE_URL`.
-2. Generá un `AUTH_SECRET` real y cargalo como secreto del hosting, no en
-   un `.env` versionado.
-3. Configurá `ANTHROPIC_API_KEY` como secreto del hosting.
-4. Los archivos subidos (`uploads/`) hoy se guardan en disco local — para
-   un despliegue con múltiples instancias o serverless, migrar a un
-   almacenamiento de objetos (S3 o similar).
-5. Revisá `docs/privacidad-ley-25326.md` antes de operar con datos
+1. Los archivos subidos (`uploads/`) hoy se guardan en disco local — para
+   un despliegue con múltiples instancias o serverless (Vercel incluido:
+   su filesystem no persiste entre requests), migrar a un almacenamiento
+   de objetos (S3 o similar).
+2. Revisá `docs/privacidad-ley-25326.md` antes de operar con datos
    personales reales.

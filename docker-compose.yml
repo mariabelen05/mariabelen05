@@ -1,0 +1,21 @@
+# Local Postgres for development — matches production (Postgres/Supabase),
+# so there's no schema drift between dev and prod like there was with SQLite.
+#
+# Usage: docker compose up -d
+# Then DATABASE_URL="postgresql://aulera:aulera@localhost:5432/aulera" in .env
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aulera
+      POSTGRES_PASSWORD: aulera
+      POSTGRES_DB: aulera
+    ports:
+      - "5432:5432"
+    volumes:
+      - aulera-db:/var/lib/postgresql/data
+
+volumes:
+  aulera-db:

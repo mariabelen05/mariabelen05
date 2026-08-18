@@ -1,14 +1,14 @@
 // Prisma schema for Aulera
-// Dev datasource is SQLite (file:./dev.db) for zero-setup local/dev work.
-// For production, switch the datasource provider to "postgresql" and set
-// DATABASE_URL to a real Postgres connection string — see README.md.
+// Datasource is PostgreSQL, matching production (Supabase). For local dev
+// without a Postgres instance handy, point DATABASE_URL at any Postgres —
+// see README.md for a docker-compose one-liner.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
