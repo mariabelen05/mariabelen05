@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { generarPaso2, ajustarPaso2, guardarPaso2 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
+import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon } from "@/components/icons";
 import type { MetodologiaActividades, Actividad } from "@/lib/planificacion-types";
 
@@ -27,6 +29,13 @@ export function Paso2Editor({
   const [contenido, setContenido] = useState(initialContenido);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const { status, borradorRecuperado, descartarBorradorRecuperado } = useOfflineDraft(
+    planId,
+    "paso2",
+    contenido,
+    (c) => guardarPaso2(planId, c, false)
+  );
 
   const generar = () => {
     setError(null);
@@ -55,8 +64,20 @@ export function Paso2Editor({
   const toggleRecurso = (r: string) =>
     setRecursos((rs) => (rs.includes(r) ? rs.filter((x) => x !== r) : [...rs, r]));
 
+  const banner = borradorRecuperado && (
+    <BorradorRecuperadoBanner
+      onRestaurar={() => {
+        setContenido(borradorRecuperado);
+        descartarBorradorRecuperado();
+      }}
+      onDescartar={descartarBorradorRecuperado}
+    />
+  );
+
   if (!contenido) {
     return (
+      <div className="flex flex-col gap-4">
+      {banner}
       <div className="flex flex-col gap-5 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-[13px] bg-purple-soft text-purple">
@@ -91,6 +112,7 @@ export function Paso2Editor({
         </button>
         {error && <p className="text-center text-xs text-danger">{error}</p>}
       </div>
+      </div>
     );
   }
 
@@ -102,6 +124,11 @@ export function Paso2Editor({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {banner}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 2 · Metodología y actividades</h2>
+        {!readOnly && <SyncStatusBadge status={status} />}
+      </div>
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-extrabold text-text">Metodología recomendada</h2>

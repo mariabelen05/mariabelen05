@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { generarPaso1, ajustarPaso1, guardarPaso1 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
+import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon } from "@/components/icons";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
 
@@ -21,6 +23,13 @@ export function Paso1Editor({
   const [contenido, setContenido] = useState(initialContenido);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const { status, borradorRecuperado, descartarBorradorRecuperado } = useOfflineDraft(
+    planId,
+    "paso1",
+    contenido,
+    (c) => guardarPaso1(planId, c, false)
+  );
 
   const generar = () => {
     setError(null);
@@ -46,31 +55,49 @@ export function Paso1Editor({
     });
   };
 
+  const banner = borradorRecuperado && (
+    <BorradorRecuperadoBanner
+      onRestaurar={() => {
+        setContenido(borradorRecuperado);
+        descartarBorradorRecuperado();
+      }}
+      onDescartar={descartarBorradorRecuperado}
+    />
+  );
+
   if (!contenido) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-14 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-[13px] bg-purple-soft text-purple">
-          <SparkleIcon className="h-5 w-5" />
+      <div className="flex flex-col gap-4">
+        {banner}
+        <div className="flex flex-col items-center gap-4 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-14 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[13px] bg-purple-soft text-purple">
+            <SparkleIcon className="h-5 w-5" />
+          </div>
+          <div className="max-w-md text-sm text-text-faint">
+            A partir de lo que contaste — &quot;{contextoLibre.slice(0, 140)}
+            {contextoLibre.length > 140 ? "…" : ""}&quot; — Aulera puede proponerte un objetivo general,
+            objetivos específicos y unidades de contenido.
+          </div>
+          <button
+            onClick={generar}
+            disabled={pending || readOnly}
+            className="rounded-[11px] bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-60"
+          >
+            {pending ? "Generando…" : "Generar propuesta con IA"}
+          </button>
+          {error && <p className="text-xs text-danger">{error}</p>}
         </div>
-        <div className="max-w-md text-sm text-text-faint">
-          A partir de lo que contaste — &quot;{contextoLibre.slice(0, 140)}
-          {contextoLibre.length > 140 ? "…" : ""}&quot; — Aulera puede proponerte un objetivo general,
-          objetivos específicos y unidades de contenido.
-        </div>
-        <button
-          onClick={generar}
-          disabled={pending || readOnly}
-          className="rounded-[11px] bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-60"
-        >
-          {pending ? "Generando…" : "Generar propuesta con IA"}
-        </button>
-        {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {banner}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 1 · Objetivos y contenidos</h2>
+        {!readOnly && <SyncStatusBadge status={status} />}
+      </div>
       {!contenido.fuente.basadoEnDocumentos && (
         <p className="rounded-xl bg-warning-soft px-4 py-3 text-xs text-warning">
           Esta propuesta se basa en conocimiento pedagógico general — no hay documentos institucionales

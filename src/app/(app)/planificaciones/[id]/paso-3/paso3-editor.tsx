@@ -6,6 +6,8 @@ import {
 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
+import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon, CheckIcon, AlertIcon } from "@/components/icons";
 import type { InstrumentoEvaluacion, CoherenciaReporte } from "@/lib/planificacion-types";
 
@@ -28,6 +30,13 @@ export function Paso3Editor({
   const [pending, startTransition] = useTransition();
   const [checking, startChecking] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const { status, borradorRecuperado, descartarBorradorRecuperado } = useOfflineDraft(
+    planId,
+    "paso3",
+    contenido,
+    (c) => guardarPaso3(planId, c, false)
+  );
 
   const generar = () => {
     setError(null);
@@ -68,8 +77,20 @@ export function Paso3Editor({
   const toggleTipo = (t: string) =>
     setTipos((ts) => (ts.includes(t) ? ts.filter((x) => x !== t) : [...ts, t]));
 
+  const banner = borradorRecuperado && (
+    <BorradorRecuperadoBanner
+      onRestaurar={() => {
+        setContenido(borradorRecuperado);
+        descartarBorradorRecuperado();
+      }}
+      onDescartar={descartarBorradorRecuperado}
+    />
+  );
+
   if (!contenido) {
     return (
+      <div className="flex flex-col gap-4">
+      {banner}
       <div className="flex flex-col gap-5 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-[13px] bg-purple-soft text-purple">
@@ -104,11 +125,17 @@ export function Paso3Editor({
         </button>
         {error && <p className="text-center text-xs text-danger">{error}</p>}
       </div>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {banner}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 3 · Evaluación y coherencia</h2>
+        {!readOnly && <SyncStatusBadge status={status} />}
+      </div>
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-extrabold text-text">Instrumento de evaluación</h2>
