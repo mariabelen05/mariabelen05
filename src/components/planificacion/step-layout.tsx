@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { CheckIcon } from "@/components/icons";
+import { ColaboradoresPanel } from "@/components/planificacion/colaboradores-panel";
+import type { PlanCollaborator } from "@prisma/client";
 
 const STEPS = [
   { n: 1, label: "Objetivos y contenidos", slug: "paso-1" },
@@ -13,21 +15,35 @@ export function StepLayout({
   titulo,
   current,
   estados,
+  colaboradores,
+  esOwner,
+  ultimaEdicion,
   children,
 }: {
   planId: string;
   titulo: string;
   current: number;
   estados: [string, string, string, string]; // paso1..4 Estado
+  colaboradores: PlanCollaborator[];
+  esOwner: boolean;
+  ultimaEdicion?: { nombre: string; fecha: Date } | null;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link href="/planificaciones" className="w-fit text-xs font-bold text-text-faint hover:text-primary">
-          ← Volver a planificaciones
-        </Link>
-        <h1 className="text-xl font-extrabold text-text sm:text-2xl">{titulo}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <Link href="/planificaciones" className="w-fit text-xs font-bold text-text-faint hover:text-primary">
+            ← Volver a planificaciones
+          </Link>
+          <h1 className="text-xl font-extrabold text-text sm:text-2xl">{titulo}</h1>
+          {ultimaEdicion && (
+            <span className="text-[11.5px] font-semibold text-text-faint">
+              Editado por {ultimaEdicion.nombre} · {ultimaEdicion.fecha.toLocaleDateString("es-AR")}
+            </span>
+          )}
+        </div>
+        <ColaboradoresPanel planId={planId} colaboradores={colaboradores} esOwner={esOwner} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">

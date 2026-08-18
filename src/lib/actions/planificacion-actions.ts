@@ -56,6 +56,18 @@ async function registrarActividad(planificacionId: string, docenteId: string, pa
   await prisma.planActivity.create({ data: { planificacionId, docenteId, paso, accion } });
 }
 
+// Powers the "Editado por [nombre]" label — last human edit/approval on a step,
+// excluding pure AI-generation events so it reflects who touched it, not Claude.
+export async function getUltimaEdicion(planId: string, paso: string) {
+  const actividad = await prisma.planActivity.findFirst({
+    where: { planificacionId: planId, paso, accion: { in: ["edito", "aprobo_paso", "ajusto_via_chat"] } },
+    orderBy: { createdAt: "desc" },
+    include: { docente: { select: { nombre: true } } },
+  });
+  if (!actividad) return null;
+  return { nombre: actividad.docente.nombre, fecha: actividad.createdAt };
+}
+
 // ---------- creación ----------
 
 export async function crearPlanificacion(formData: FormData) {
@@ -276,6 +288,57 @@ export async function enviarMensajeAsistente(planId: string, paso: string, mensa
 
   const respuesta = await chatAsistente({ contextoPaso, historial, mensaje });
   return respuesta;
+}
+
+// ---------- Co-planificación ----------
+
+async function requireOwner(planId: string) {
+  const { docente, plan } = await getPlanConAcceso(planId);
+  if (plan.docenteId !== docente.id) {
+    throw new Error("Solo quien creó la planificación puede gestionar colaboradores.");
+  }
+  return { docente, plan };
+}
+
+function revalidatePlanPaths(planId: string) {
+  for (const paso of ["paso-1", "paso-2", "paso-3", "paso-4"]) {
+    revalidatePath(`/planificaciones/${planId}/${paso}`);
+  }
+}
+
+export async function invitarColaborador(planId: string, email: string, rol: "EDITOR" | "VISOR") {
+  const { docente } = await requireOwner(planId);
+  const emailNorm = email.toLowerCase().trim();
+  if (emailNorm === docente.email) throw new Error("Ya sos el creador de esta planificación.");
+
+  const docenteInvitado = await prisma.docente.findUnique({ where: { email: emailNorm } });
+
+  await prisma.planCollaborator.upsert({
+    where: { planificacionId_email: { planificacionId: planId, email: emailNorm } },
+    update: { rol },
+    create: {
+      planificacionId: planId,
+      email: emailNorm,
+      rol,
+      docenteId: docenteInvitado?.id,
+      estado: docenteInvitado ? "ACEPTADA" : "PENDIENTE",
+      invitadoPorId: docente.id,
+    },
+  });
+  await registrarActividad(planId, docente.id, "general", `invito_colaborador:${emailNorm}`);
+  revalidatePlanPaths(planId);
+}
+
+export async function cambiarRolColaborador(planId: string, colaboradorId: string, rol: "EDITOR" | "VISOR") {
+  await requireOwner(planId);
+  await prisma.planCollaborator.update({ where: { id: colaboradorId }, data: { rol } });
+  revalidatePlanPaths(planId);
+}
+
+export async function quitarColaborador(planId: string, colaboradorId: string) {
+  await requireOwner(planId);
+  await prisma.planCollaborator.delete({ where: { id: colaboradorId } });
+  revalidatePlanPaths(planId);
 }
 
 export async function eliminarPlanificacion(planId: string) {

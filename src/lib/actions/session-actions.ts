@@ -15,5 +15,14 @@ export async function requireDocente() {
   if (!session?.user?.id) redirect("/login");
   const docente = await prisma.docente.findUnique({ where: { id: session.user.id } });
   if (!docente) redirect("/login");
+
+  // Co-planificación invites are created by email before the invited teacher
+  // necessarily has an account. Link any pending ones the first time they're
+  // seen logged in, so the shared plan shows up without a separate "accept" step.
+  await prisma.planCollaborator.updateMany({
+    where: { email: docente.email, docenteId: null },
+    data: { docenteId: docente.id, estado: "ACEPTADA" },
+  });
+
   return docente;
 }
