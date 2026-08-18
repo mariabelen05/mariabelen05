@@ -1,0 +1,258 @@
+// Prisma schema for Aulera
+// Dev datasource is SQLite (file:./dev.db) for zero-setup local/dev work.
+// For production, switch the datasource provider to "postgresql" and set
+// DATABASE_URL to a real Postgres connection string — see README.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Docentes / auth ----------
+
+model Docente {
+  id           String   @id @default(cuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  edad         Int?
+  fotoUrl      String?
+  provincia    String?
+  modalidad    String? // aula, rural, plurigrado, etc. (Paso 1 onboarding)
+  materias     String? // JSON-encoded string[]
+  consintioPrivacidadEn DateTime? // timestamp of explicit privacy-policy acceptance at signup
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  planificaciones   Planificacion[]      @relation("PlanificacionCreador")
+  colaboraciones    PlanCollaborator[]   @relation("ColaboradorDocente")
+  invitacionesHechas PlanCollaborator[]  @relation("InvitadoPor")
+  documentos        Documento[]
+  evaluaciones      Evaluacion[]
+  itemsBanco        ItemBanco[]
+  recursos          Recurso[]
+  eventos           EventoCalendario[]
+  actividades       PlanActivity[]
+}
+
+// ---------- Planificaciones ----------
+
+enum EstadoPaso {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADO
+}
+
+enum EstadoPlanificacion {
+  BORRADOR
+  EN_PROGRESO
+  FINALIZADA
+}
+
+model Planificacion {
+  id       String @id @default(cuid())
+  titulo   String
+  docenteId String
+  docente   Docente @relation("PlanificacionCreador", fields: [docenteId], references: [id])
+
+  materia   String?
+  curso     String?
+  provincia String?
+  modalidad String?
+
+  // Paso 1 — Objetivos y Contenidos
+  contextoLibre         String? // texto libre del docente
+  paso1Estado           EstadoPaso @default(PENDIENTE)
+  objetivosContenidos   String? // JSON: { objetivos: [...], contenidos: [...], aprobado: bool }
+
+  // Paso 2 — Metodologia y Actividades
+  paso2Estado           EstadoPaso @default(PENDIENTE)
+  metodologiaActividades String? // JSON
+
+  // Paso 3 — Evaluacion y Coherencia
+  paso3Estado           EstadoPaso @default(PENDIENTE)
+  instrumentoEvaluacion String? // JSON
+  coherenciaReporte     String? // JSON: { advertencias: [...], generadoEn }
+
+  // Paso 4 — Resultado final
+  paso4Estado    EstadoPaso @default(PENDIENTE)
+  resultadoFinal String? // JSON: compiled document content, teacher-approved
+
+  estado    EstadoPlanificacion @default(BORRADOR)
+  version   Int                 @default(1) // optimistic concurrency for offline sync
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  colaboradores PlanCollaborator[]
+  documentos    Documento[]
+  evaluaciones  Evaluacion[]
+  eventos       EventoCalendario[]
+  recursos      Recurso[]
+  actividades   PlanActivity[]
+}
+
+enum RolColaborador {
+  EDITOR
+  VISOR
+}
+
+enum EstadoInvitacion {
+  PENDIENTE
+  ACEPTADA
+}
+
+model PlanCollaborator {
+  id              String   @id @default(cuid())
+  planificacionId String
+  planificacion   Planificacion @relation(fields: [planificacionId], references: [id], onDelete: Cascade)
+
+  email           String
+  docenteId       String?
+  docente         Docente? @relation("ColaboradorDocente", fields: [docenteId], references: [id])
+
+  rol             RolColaborador   @default(VISOR)
+  estado          EstadoInvitacion @default(PENDIENTE)
+  token           String           @unique @default(cuid())
+
+  invitadoPorId   String
+  invitadoPor     Docente @relation("InvitadoPor", fields: [invitadoPorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([planificacionId, email])
+}
+
+// Attribution log — powers the "Editado por [nombre]" label per step.
+model PlanActivity {
+  id              String   @id @default(cuid())
+  planificacionId String
+  planificacion   Planificacion @relation(fields: [planificacionId], references: [id], onDelete: Cascade)
+  docenteId       String
+  docente         Docente @relation(fields: [docenteId], references: [id])
+  paso            String // "paso1" | "paso2" | "paso3" | "paso4" | "general"
+  accion          String // e.g. "edito", "aprobo_sugerencia", "genero_ia"
+  createdAt       DateTime @default(now())
+}
+
+// ---------- Documentos ----------
+
+enum EstadoDocumento {
+  PROCESANDO
+  PROCESADO
+  ERROR
+}
+
+model Documento {
+  id              String   @id @default(cuid())
+  docenteId       String
+  docente         Docente  @relation(fields: [docenteId], references: [id])
+  planificacionId String?
+  planificacion   Planificacion? @relation(fields: [planificacionId], references: [id])
+
+  nombreArchivo String
+  mimeType      String
+  storagePath   String
+  clasificacion String? // e.g. "Diseño curricular", "Normativa institucional", "Otro"
+
+  estado        EstadoDocumento @default(PROCESANDO)
+  textoExtraido String? // extracted (and OCR'd, if needed) text used as AI context
+  errorMensaje  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Evaluaciones / banco de preguntas ----------
+
+model Evaluacion {
+  id              String   @id @default(cuid())
+  docenteId       String
+  docente         Docente  @relation(fields: [docenteId], references: [id])
+  planificacionId String?
+  planificacion   Planificacion? @relation(fields: [planificacionId], references: [id])
+
+  titulo    String
+  tipo      String? // "escrita", "oral", "trabajo practico", ...
+  contenido String? // JSON: instrumento generado/editado
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ItemBanco[]
+}
+
+model ItemBanco {
+  id           String @id @default(cuid())
+  docenteId    String
+  docente      Docente @relation(fields: [docenteId], references: [id])
+  evaluacionId String?
+  evaluacion   Evaluacion? @relation(fields: [evaluacionId], references: [id])
+
+  enunciado         String
+  tipo              String // "opcion_multiple" | "desarrollo" | "verdadero_falso" | ...
+  opciones          String? // JSON string[]
+  respuestaCorrecta String?
+  tema              String?
+  dificultad        String? // "facil" | "media" | "dificil"
+
+  createdAt DateTime @default(now())
+}
+
+// ---------- Recursos ----------
+
+model Recurso {
+  id              String   @id @default(cuid())
+  docenteId       String
+  docente         Docente  @relation(fields: [docenteId], references: [id])
+  planificacionId String?
+  planificacion   Planificacion? @relation(fields: [planificacionId], references: [id])
+
+  titulo      String
+  tipo        String // "archivo" | "enlace"
+  url         String?
+  storagePath String?
+  descripcion String?
+  tags        String? // JSON string[]
+
+  createdAt DateTime @default(now())
+}
+
+// ---------- Calendario ----------
+
+model EventoCalendario {
+  id              String   @id @default(cuid())
+  docenteId       String
+  docente         Docente  @relation(fields: [docenteId], references: [id])
+  planificacionId String?
+  planificacion   Planificacion? @relation(fields: [planificacionId], references: [id])
+
+  titulo      String
+  fecha       DateTime
+  tipo        String // "clase" | "entrega" | "evaluacion" | "reunion" | "otro"
+  descripcion String?
+
+  createdAt DateTime @default(now())
+}
+
+enum AlcanceFeriado {
+  NACIONAL
+  PROVINCIAL
+}
+
+// Manually-curated academic calendar (national + provincial non-working days).
+// v1 has no live integration with an official source — see docs/calendario-feriados.md.
+model Feriado {
+  id        String         @id @default(cuid())
+  fecha     DateTime
+  nombre    String
+  alcance   AlcanceFeriado
+  provincia String? // null when alcance = NACIONAL
+  anio      Int
+
+  @@unique([fecha, provincia])
+}
