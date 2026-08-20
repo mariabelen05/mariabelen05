@@ -32,14 +32,43 @@ export async function callClaude(params: {
   maxTokens?: number;
 }) {
   const anthropic = getAnthropicClient();
-  const response = await anthropic.messages.create({
-    model: AULERA_MODEL,
-    max_tokens: params.maxTokens ?? 4096,
-    system: params.system ?? AULERA_SYSTEM_PROMPT,
-    messages: params.messages,
-  });
-  const textBlock = response.content.find((b) => b.type === "text");
-  return textBlock && textBlock.type === "text" ? textBlock.text : "";
+  try {
+    const response = await anthropic.messages.create({
+      model: AULERA_MODEL,
+      max_tokens: params.maxTokens ?? 4096,
+      system: params.system ?? AULERA_SYSTEM_PROMPT,
+      messages: params.messages,
+    });
+    const textBlock = response.content.find((b) => b.type === "text");
+    return textBlock && textBlock.type === "text" ? textBlock.text : "";
+  } catch (err) {
+    // Log the raw error server-side (visible in Vercel runtime logs) so it
+    // stays diagnosable, but never show a docente a raw API/JSON error.
+    console.error("[anthropic] callClaude failed:", err);
+    throw new Error(friendlyClaudeError(err));
+  }
+}
+
+function friendlyClaudeError(err: unknown): string {
+  if (err instanceof Anthropic.APIError) {
+    const message = String(err.error && typeof err.error === "object" && "error" in err.error
+      ? (err.error as { error?: { message?: string } }).error?.message ?? ""
+      : "");
+
+    if (err.status === 400 && /credit balance/i.test(message)) {
+      return "Aulera no puede generar sugerencias en este momento: no hay crédito disponible en la cuenta de IA. Avisale al administrador de la plataforma para que cargue crédito.";
+    }
+    if (err.status === 401) {
+      return "Aulera no puede generar sugerencias en este momento: la clave de acceso a la IA no es válida. Avisale al administrador de la plataforma.";
+    }
+    if (err.status === 429) {
+      return "Aulera está recibiendo muchos pedidos en este momento. Esperá un minuto y volvé a intentar.";
+    }
+    if (err.status && err.status >= 500) {
+      return "El servicio de IA no está respondiendo en este momento. Volvé a intentar en unos minutos.";
+    }
+  }
+  return "No se pudo generar la sugerencia. Volvé a intentar en unos minutos; si el problema sigue, avisale al administrador de la plataforma.";
 }
 
 // Strips accidental ```json fences and parses. Throws with the raw text on failure
