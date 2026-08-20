@@ -1,10 +1,10 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { unlink } from "node:fs/promises";
 import { prisma } from "@/lib/prisma";
 import { requireDocente, signOutAction } from "@/lib/actions/session-actions";
 import { revalidatePath } from "next/cache";
+import { deleteFile } from "@/lib/storage";
 
 export type PerfilState = { error?: string; success?: string } | undefined;
 
@@ -63,7 +63,7 @@ export async function eliminarCuenta() {
   ]);
 
   await Promise.all(
-    [...documentos, ...recursos].map((f) => (f.storagePath ? unlink(f.storagePath).catch(() => {}) : null))
+    [...documentos, ...recursos].map((f) => (f.storagePath ? deleteFile(f.storagePath).catch(() => {}) : null))
   );
 
   await signOutAction();

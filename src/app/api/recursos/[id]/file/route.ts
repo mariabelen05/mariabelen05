@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { requireDocente } from "@/lib/actions/session-actions";
+import { downloadFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   let buffer: Buffer;
   try {
-    buffer = await readFile(recurso.storagePath);
+    buffer = await downloadFile(recurso.storagePath);
   } catch {
     return NextResponse.json({ error: "El archivo no está disponible." }, { status: 404 });
   }
