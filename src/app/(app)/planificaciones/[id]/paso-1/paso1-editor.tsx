@@ -6,7 +6,9 @@ import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
 import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
-import { SparkleIcon } from "@/components/icons";
+import { SparkleIcon, SearchIcon } from "@/components/icons";
+import { HighlightedTextarea, HighlightedInput } from "@/components/highlighted-fields";
+import { countMatches } from "@/lib/text-highlight";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
 
 export function Paso1Editor({
@@ -23,6 +25,7 @@ export function Paso1Editor({
   const [contenido, setContenido] = useState(initialContenido);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const { status, borradorRecuperado, descartarBorradorRecuperado } = useOfflineDraft(
     planId,
@@ -91,6 +94,15 @@ export function Paso1Editor({
     );
   }
 
+  const totalCoincidencias = busqueda.trim()
+    ? countMatches(contenido.objetivoGeneral.texto, busqueda) +
+      contenido.objetivosEspecificos.reduce((n, o) => n + countMatches(o.texto, busqueda), 0) +
+      contenido.unidadesContenido.reduce(
+        (n, u) => n + countMatches(u.titulo, busqueda) + u.subtemas.reduce((m, s) => m + countMatches(s.texto, busqueda), 0),
+        0
+      )
+    : 0;
+
   return (
     <div className="flex flex-col gap-6 pb-20">
       {banner}
@@ -98,6 +110,22 @@ export function Paso1Editor({
         <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 1 · Objetivos y contenidos</h2>
         {!readOnly && <SyncStatusBadge status={status} />}
       </div>
+
+      <div className="flex items-center gap-2 rounded-[10px] border border-border bg-surface px-3 py-2 sm:w-80">
+        <SearchIcon className="h-4 w-4 shrink-0 text-text-faint" />
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar dentro del documento…"
+          className="w-full bg-transparent text-[13px] outline-none placeholder:text-text-faint"
+        />
+        {busqueda.trim() && (
+          <span className="shrink-0 text-[11px] font-semibold text-text-faint">
+            {totalCoincidencias} {totalCoincidencias === 1 ? "coincidencia" : "coincidencias"}
+          </span>
+        )}
+      </div>
+
       {!contenido.fuente.basadoEnDocumentos && (
         <p className="rounded-xl bg-warning-soft px-4 py-3 text-xs text-warning">
           Esta propuesta se basa en conocimiento pedagógico general — no hay documentos institucionales
@@ -110,7 +138,8 @@ export function Paso1Editor({
           <h2 className="text-sm font-extrabold text-text">Objetivo general</h2>
           <SuggestionBadge estado={contenido.objetivoGeneral.estado} />
         </div>
-        <textarea
+        <HighlightedTextarea
+          highlight={busqueda}
           disabled={readOnly}
           value={contenido.objetivoGeneral.texto}
           onChange={(e) =>
@@ -129,7 +158,9 @@ export function Paso1Editor({
         {contenido.objetivosEspecificos.map((o, i) => (
           <div key={o.id} className="flex items-start gap-2">
             <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <textarea
+            <HighlightedTextarea
+              highlight={busqueda}
+              wrapperClassName="flex-1"
               disabled={readOnly}
               value={o.texto}
               onChange={(e) => {
@@ -138,7 +169,7 @@ export function Paso1Editor({
                 setContenido({ ...contenido, objetivosEspecificos: next });
               }}
               rows={2}
-              className="flex-1 resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
+              className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
             />
           </div>
         ))}
@@ -149,7 +180,9 @@ export function Paso1Editor({
         {contenido.unidadesContenido.map((u, i) => (
           <div key={u.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3.5">
             <div className="flex items-center gap-2">
-              <input
+              <HighlightedInput
+                highlight={busqueda}
+                wrapperClassName="flex-1"
                 disabled={readOnly}
                 value={u.titulo}
                 onChange={(e) => {
@@ -157,7 +190,7 @@ export function Paso1Editor({
                   next[i] = { ...u, titulo: e.target.value };
                   setContenido({ ...contenido, unidadesContenido: next });
                 }}
-                className="flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-[13px] font-bold outline-none focus:border-primary disabled:opacity-70"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-[13px] font-bold outline-none focus:border-primary disabled:opacity-70"
               />
               <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary">
                 {u.tag}
@@ -167,7 +200,9 @@ export function Paso1Editor({
               {u.subtemas.map((s, j) => (
                 <li key={s.id} className="flex items-center gap-2">
                   <span className="h-1 w-1 shrink-0 rounded-full bg-text-faint" />
-                  <input
+                  <HighlightedInput
+                    highlight={busqueda}
+                    wrapperClassName="flex-1"
                     disabled={readOnly}
                     value={s.texto}
                     onChange={(e) => {
@@ -177,7 +212,7 @@ export function Paso1Editor({
                       nextU[i] = { ...u, subtemas: nextSub };
                       setContenido({ ...contenido, unidadesContenido: nextU });
                     }}
-                    className="flex-1 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none focus:border-border disabled:opacity-70"
+                    className="rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none focus:border-border disabled:opacity-70"
                   />
                 </li>
               ))}

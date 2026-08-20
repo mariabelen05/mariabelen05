@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import { eliminarRecurso } from "@/lib/actions/recursos-actions";
-import { FileIcon, TrashIcon } from "@/components/icons";
+import { FileIcon } from "@/components/icons";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import type { Recurso } from "@prisma/client";
 
 export function RecursoRow({
@@ -10,7 +10,6 @@ export function RecursoRow({
 }: {
   recurso: Recurso & { planificacion: { titulo: string } | null };
 }) {
-  const [pending, startTransition] = useTransition();
   const tags = recurso.tags ? (JSON.parse(recurso.tags) as string[]) : [];
 
   return (
@@ -23,13 +22,7 @@ export function RecursoRow({
           <div className="truncate text-[13px] font-bold text-text">{recurso.titulo}</div>
           {recurso.planificacion && <div className="truncate text-[11px] text-text-faint">{recurso.planificacion.titulo}</div>}
         </div>
-        <button
-          disabled={pending}
-          onClick={() => startTransition(() => eliminarRecurso(recurso.id))}
-          className="shrink-0 text-danger disabled:opacity-50"
-        >
-          <TrashIcon className="h-4 w-4" />
-        </button>
+        <ConfirmDeleteButton onDelete={() => eliminarRecurso(recurso.id)} />
       </div>
       {recurso.descripcion && <p className="text-xs text-text-faint">{recurso.descripcion}</p>}
       {recurso.url && (
