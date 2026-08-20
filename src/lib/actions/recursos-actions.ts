@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { requireDocente } from "@/lib/actions/session-actions";
 import { revalidatePath } from "next/cache";
+import { RECURSO_COLOR_ORDER } from "@/lib/recurso-colors";
 
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
@@ -22,11 +23,13 @@ export async function crearRecurso(formData: FormData) {
   if (!titulo) throw new Error("Ingresá un título.");
 
   let storagePath: string | null = null;
+  let mimeType: string | null = null;
   if (archivo instanceof File && archivo.size > 0) {
     const dirDocente = path.join(UPLOADS_DIR, docente.id, "recursos");
     await mkdir(dirDocente, { recursive: true });
     storagePath = path.join(dirDocente, `${randomUUID()}-${archivo.name}`);
     await writeFile(storagePath, Buffer.from(await archivo.arrayBuffer()));
+    mimeType = archivo.type || null;
   }
 
   if (!storagePath && !url) throw new Error("Subí un archivo o pegá un enlace.");
@@ -41,8 +44,20 @@ export async function crearRecurso(formData: FormData) {
       tipo: storagePath ? "archivo" : "enlace",
       url,
       storagePath,
+      mimeType,
     },
   });
+  revalidatePath("/recursos");
+}
+
+export async function cambiarColorRecurso(recursoId: string, colorId: string | null) {
+  if (colorId !== null && !RECURSO_COLOR_ORDER.includes(colorId as (typeof RECURSO_COLOR_ORDER)[number])) {
+    throw new Error("Color inválido.");
+  }
+  const docente = await requireDocente();
+  const r = await prisma.recurso.findUnique({ where: { id: recursoId } });
+  if (!r || r.docenteId !== docente.id) throw new Error("No encontrado.");
+  await prisma.recurso.update({ where: { id: recursoId }, data: { colorOverride: colorId } });
   revalidatePath("/recursos");
 }
 

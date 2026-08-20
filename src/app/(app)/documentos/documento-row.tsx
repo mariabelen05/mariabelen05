@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { eliminarDocumento, reprocesarDocumento } from "@/lib/actions/documentos-actions";
-import { FileIcon, TrashIcon } from "@/components/icons";
+import { FileIcon } from "@/components/icons";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import type { Documento } from "@prisma/client";
 
 const ESTADO: Record<string, { label: string; fg: string; bg: string }> = {
@@ -45,14 +46,7 @@ export function DocumentoRow({
             Reintentar
           </button>
         )}
-        <button
-          disabled={pending}
-          onClick={() => startTransition(() => eliminarDocumento(documento.id))}
-          className="shrink-0 text-danger disabled:opacity-50"
-          aria-label="Eliminar"
-        >
-          <TrashIcon className="h-4 w-4" />
-        </button>
+        <ConfirmDeleteButton onDelete={() => eliminarDocumento(documento.id)} />
       </div>
 
       {open && (
