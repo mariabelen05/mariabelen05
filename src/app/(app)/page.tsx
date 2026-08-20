@@ -177,7 +177,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[10.5px] font-bold text-[#B4B2CB]">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10.5px] font-bold text-text-muted">
             {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
               <div key={i}>{d}</div>
             ))}
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
                     ? "bg-primary font-extrabold text-white"
                     : c.isMarked
                     ? "bg-primary-soft font-semibold text-primary"
-                    : "font-medium text-[#5C5A78]"
+                    : "font-medium text-text-faint"
                 }`}
               >
                 {c.n ?? ""}

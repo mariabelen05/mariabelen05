@@ -16,8 +16,10 @@
   --color-purple-soft: #ede9fe;
 
   --color-text: #1e2340;
-  --color-text-muted: #8b8aa6;
-  --color-text-faint: #6b6a8c;
+  /* text-text-faint: secondary text (subtitles, descriptions) — WCAG AA on white and on --color-surface.
+     text-text-muted: tertiary, one step lighter (placeholders, tiny timestamps, decorative labels) — still legible, never near-invisible. */
+  --color-text-faint: #5a5f7a;
+  --color-text-muted: #72779b;
 
   --color-success: #2fb380;
   --color-success-soft: #e4f7ee;

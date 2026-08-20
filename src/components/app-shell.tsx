@@ -48,7 +48,7 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
               href={item.href}
               onClick={onNavigate}
               className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14.5px] transition-colors ${
-                active ? "bg-purple-soft font-bold text-primary" : "font-semibold text-[#5C5A78] hover:bg-surface"
+                active ? "bg-purple-soft font-bold text-primary" : "font-semibold text-text-faint hover:bg-surface"
               }`}
             >
               <item.Icon className="h-5 w-5 shrink-0" />
