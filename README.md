@@ -36,6 +36,8 @@ Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 | `AUTH_SECRET` | Firma las sesiones de Auth.js. **Sin esto, la app tira "problema con la configuración del servidor" apenas entrás** (Auth.js la exige en cuanto corre en modo producción). Generá una propia con `openssl rand -base64 32`. |
 | `ANTHROPIC_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). |
 | `ANTHROPIC_MODEL` | Modelo a usar (default `claude-sonnet-4-5`). |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Almacenamiento de archivos (Documentos/Recursos) vía Supabase Storage. **Requeridas en producción** — el filesystem de Vercel es de solo lectura, así que sin esto las subidas fallan con `ENOENT`. En local son opcionales: sin ellas, los archivos se guardan en `./uploads` en disco. La service role key es de Settings → API → Project API keys en Supabase (no la `anon`/pública — esta necesita permiso para escribir en Storage sin pasar por RLS). |
+| `SUPABASE_STORAGE_BUCKET` | Nombre del bucket (default `aulera-uploads`). El bucket se crea solo, privado, la primera vez que se sube un archivo — no hace falta crearlo a mano en el dashboard. |
 
 ### Deploy en Vercel + Supabase
 
@@ -49,8 +51,10 @@ correr nada a mano ni pegar el connection string en ningún lado.
    - **Transaction pooler** (puerto 6543) → variable `DATABASE_URL`.
    - **Direct connection** (puerto 5432) → variable `DIRECT_URL`.
 2. En Vercel → Settings → Environment Variables, cargá esas dos más
-   `AUTH_SECRET` y `ANTHROPIC_API_KEY`. No hace falta `AUTH_URL` ni
-   `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel solo.
+   `AUTH_SECRET`, `ANTHROPIC_API_KEY`, `SUPABASE_URL` y
+   `SUPABASE_SERVICE_ROLE_KEY` (esta última en Supabase → Settings → API).
+   No hace falta `AUTH_URL` ni `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel
+   solo, y el bucket de Storage se crea solo en la primera subida.
 3. Redeploy (o el próximo push a la rama). El log del build va a mostrar
    `prisma migrate deploy` aplicando lo pendiente antes de `next build`.
 4. (Opcional, una sola vez) `DATABASE_URL="..." npm run db:seed` desde tu
@@ -87,6 +91,13 @@ deploy.
   reflejan el resultado real, no un mock. Limitación conocida: un PDF
   escaneado sin capa de texto no se convierte automáticamente a imagen
   para OCR — hay que subir esas páginas como imagen.
+- **Archivos** (`src/lib/storage.ts`): Documentos y Recursos suben a
+  Supabase Storage (bucket privado, se autocrea en la primera subida) —
+  necesario en Vercel porque su filesystem es de solo lectura. Sin
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` cae a `./uploads` en disco
+  (pensado para desarrollo local, no para producción). Cada descarga pasa
+  por una ruta propia que primero verifica ownership (`requireDocente`) —
+  el bucket es privado, nadie accede al archivo sin pasar por esa acción.
 - **Exportación** (`src/app/api/planificaciones/[id]/export/route.ts`):
   genera un PDF real (pdfkit) y un .docx real (paquete `docx`) a partir
   del contenido aprobado, no una captura de pantalla.
@@ -119,9 +130,5 @@ npm run db:seed    # recargar el calendario de feriados
 
 Para desplegar con usuarios reales, además de lo de arriba:
 
-1. Los archivos subidos (`uploads/`) hoy se guardan en disco local — para
-   un despliegue con múltiples instancias o serverless (Vercel incluido:
-   su filesystem no persiste entre requests), migrar a un almacenamiento
-   de objetos (S3 o similar).
-2. Revisá `docs/privacidad-ley-25326.md` antes de operar con datos
+1. Revisá `docs/privacidad-ley-25326.md` antes de operar con datos
    personales reales.

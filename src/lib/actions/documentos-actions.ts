@@ -1,16 +1,10 @@
 "use server";
 
-import path from "node:path";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { requireDocente } from "@/lib/actions/session-actions";
 import { extraerTexto } from "@/lib/document-extraction";
 import { revalidatePath } from "next/cache";
-
-// Statically scoped (not built from env) so Next's file tracing doesn't
-// bundle the whole project — see the Turbopack warning this used to trigger.
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+import { buildStorageKey, uploadFile, downloadFile, deleteFile } from "@/lib/storage";
 
 const TIPOS_SOPORTADOS = new Set([
   "application/pdf",
@@ -36,11 +30,8 @@ export async function subirDocumento(formData: FormData) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const dirDocente = path.join(UPLOADS_DIR, docente.id);
-  await mkdir(dirDocente, { recursive: true });
-  const storageName = `${randomUUID()}-${file.name}`;
-  const storagePath = path.join(dirDocente, storageName);
-  await writeFile(storagePath, bytes);
+  const storagePath = buildStorageKey(docente.id, file.name);
+  await uploadFile(storagePath, bytes, file.type || undefined);
 
   const doc = await prisma.documento.create({
     data: {
@@ -78,7 +69,7 @@ export async function eliminarDocumento(documentoId: string) {
   const doc = await prisma.documento.findUnique({ where: { id: documentoId } });
   if (!doc || doc.docenteId !== docente.id) throw new Error("No encontrado.");
   await prisma.documento.delete({ where: { id: documentoId } });
-  await unlink(doc.storagePath).catch(() => {});
+  await deleteFile(doc.storagePath).catch(() => {});
   revalidatePath("/documentos");
 }
 
@@ -89,8 +80,7 @@ export async function reprocesarDocumento(documentoId: string) {
 
   await prisma.documento.update({ where: { id: documentoId }, data: { estado: "PROCESANDO", errorMensaje: null } });
 
-  const { readFile } = await import("node:fs/promises");
-  const bytes = await readFile(doc.storagePath);
+  const bytes = await downloadFile(doc.storagePath);
   const resultado = await extraerTexto(bytes, doc.mimeType);
 
   if ("error" in resultado) {

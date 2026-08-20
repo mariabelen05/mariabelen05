@@ -1,14 +1,10 @@
 "use server";
 
-import path from "node:path";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { requireDocente } from "@/lib/actions/session-actions";
 import { revalidatePath } from "next/cache";
 import { RECURSO_COLOR_ORDER } from "@/lib/recurso-colors";
-
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+import { buildStorageKey, uploadFile, deleteFile } from "@/lib/storage";
 
 export async function crearRecurso(formData: FormData) {
   const docente = await requireDocente();
@@ -25,10 +21,8 @@ export async function crearRecurso(formData: FormData) {
   let storagePath: string | null = null;
   let mimeType: string | null = null;
   if (archivo instanceof File && archivo.size > 0) {
-    const dirDocente = path.join(UPLOADS_DIR, docente.id, "recursos");
-    await mkdir(dirDocente, { recursive: true });
-    storagePath = path.join(dirDocente, `${randomUUID()}-${archivo.name}`);
-    await writeFile(storagePath, Buffer.from(await archivo.arrayBuffer()));
+    storagePath = buildStorageKey(docente.id, archivo.name, "recursos");
+    await uploadFile(storagePath, Buffer.from(await archivo.arrayBuffer()), archivo.type || undefined);
     mimeType = archivo.type || null;
   }
 
@@ -66,6 +60,6 @@ export async function eliminarRecurso(recursoId: string) {
   const r = await prisma.recurso.findUnique({ where: { id: recursoId } });
   if (!r || r.docenteId !== docente.id) throw new Error("No encontrado.");
   await prisma.recurso.delete({ where: { id: recursoId } });
-  if (r.storagePath) await unlink(r.storagePath).catch(() => {});
+  if (r.storagePath) await deleteFile(r.storagePath).catch(() => {});
   revalidatePath("/recursos");
 }
