@@ -224,6 +224,8 @@ model Recurso {
   tipo        String // "archivo" | "enlace"
   url         String?
   storagePath String?
+  mimeType    String? // set on upload; drives the automatic color-by-type indicator
+  colorOverride String? // palette id from src/lib/recurso-colors.ts; null = automatic by type
   descripcion String?
   tags        String? // JSON string[]
 

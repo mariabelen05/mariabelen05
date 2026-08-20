@@ -164,6 +164,20 @@ export const DownloadIcon = base(
     <line x1="12" y1="15" x2="12" y2="3" />
   </>
 );
+export const MoreIcon = base(
+  <>
+    <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none" />
+  </>
+);
+export const ExternalLinkIcon = base(
+  <>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </>
+);
 export const TrashIcon = base(
   <>
     <polyline points="3 6 5 6 21 6" />
