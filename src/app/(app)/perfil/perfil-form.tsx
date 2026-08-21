@@ -6,11 +6,9 @@ import type { Docente } from "@prisma/client";
 
 export function PerfilForm({
   docente,
-  provincias,
   modalidades,
 }: {
   docente: Docente;
-  provincias: string[];
   modalidades: { value: string; label: string }[];
 }) {
   const [state, formAction, pending] = useActionState(actualizarPerfil, undefined);
@@ -27,14 +25,6 @@ export function PerfilForm({
       <label className="flex flex-col gap-1.5">
         <span className="text-[13px] font-semibold text-text">Edad (opcional)</span>
         <input name="edad" type="number" defaultValue={docente.edad ?? ""} className="rounded-[11px] border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-text">Provincia</span>
-        <select name="provincia" defaultValue={docente.provincia ?? ""} className="rounded-[11px] border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-primary">
-          <option value="">Sin especificar</option>
-          {provincias.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
       </label>
 
       <label className="flex flex-col gap-1.5">

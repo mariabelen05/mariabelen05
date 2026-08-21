@@ -171,6 +171,18 @@ export function Paso2Editor({
             </div>
             <CampoActividad label="Resultado esperado" value={act.resultadoEsperado} readOnly={readOnly} multiline
               onChange={(v) => updateActividad(setContenido, contenido, key, { resultadoEsperado: v })} />
+
+            {act.variantes && (
+              <div className="mt-1 flex flex-col gap-3 rounded-xl bg-surface p-3.5">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-text-faint">
+                  Variantes de la actividad — Educación especial
+                </span>
+                <CampoActividad label="Apoyo" value={act.variantes.apoyo} readOnly={readOnly} multiline
+                  onChange={(v) => updateVariante(setContenido, contenido, key, "apoyo", v)} />
+                <CampoActividad label="Ampliación" value={act.variantes.ampliacion} readOnly={readOnly} multiline
+                  onChange={(v) => updateVariante(setContenido, contenido, key, "ampliacion", v)} />
+              </div>
+            )}
           </section>
         );
       })}
@@ -226,6 +238,18 @@ function updateActividad(
     ...contenido,
     actividades: { ...contenido.actividades, [key]: { ...contenido.actividades[key], ...patch } },
   });
+}
+
+function updateVariante(
+  setContenido: (c: MetodologiaActividades) => void,
+  contenido: MetodologiaActividades,
+  key: "inicio" | "desarrollo" | "cierre",
+  variante: "apoyo" | "ampliacion",
+  value: string
+) {
+  const act = contenido.actividades[key];
+  if (!act.variantes) return;
+  updateActividad(setContenido, contenido, key, { variantes: { ...act.variantes, [variante]: value } });
 }
 
 function CampoActividad({

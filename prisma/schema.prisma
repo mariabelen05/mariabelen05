@@ -30,8 +30,14 @@ model Docente {
   edad         Int?
   fotoUrl      String?
   provincia    String?
-  modalidad    String? // aula, rural, plurigrado, etc. (Paso 1 onboarding)
-  materias     String? // JSON-encoded string[]
+  modalidad    String? // aula, rural, plurigrado, especial, etc. — asked at registro
+  materias     String? // JSON-encoded string[] — niveles/materias que dicta en general (Ficha institucional)
+
+  // Ficha institucional (Mi perfil, opcional, nunca pedida en registro) — el
+  // "membrete" que Modo A precarga en Nueva planificación cuando está completa.
+  institucion  String?
+  localidad    String?
+
   consintioPrivacidadEn DateTime? // timestamp of explicit privacy-policy acceptance at signup
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -69,11 +75,18 @@ model Planificacion {
 
   materia   String?
   curso     String?
+  division  String? // solo Modo A — depende de la planificación, nunca se guarda en la Ficha
   provincia String?
   modalidad String?
 
+  // Modo elegido en Nueva planificación — se pregunta CADA VEZ, no se guarda como preferencia fija.
+  modo        String? // "institucion" (Modo A) | "independiente" (Modo B)
+  institucion String? // snapshot al crear: de la Ficha del docente, o tipeado a mano si no tenía
+  localidad   String?
+
   // Paso 1 — Objetivos y Contenidos
   contextoLibre         String? // texto libre del docente
+  contextoGrupo         String? // Educación Especial: notas del docente en lenguaje pedagógico común, nunca diagnósticos
   paso1Estado           EstadoPaso @default(PENDIENTE)
   objetivosContenidos   String? // JSON: { objetivos: [...], contenidos: [...], aprobado: bool }
 

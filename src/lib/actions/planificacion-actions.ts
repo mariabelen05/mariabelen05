@@ -77,6 +77,29 @@ export async function crearPlanificacion(formData: FormData) {
   const materia = String(formData.get("materia") || "").trim() || null;
   const curso = String(formData.get("curso") || "").trim() || null;
   const contextoLibre = String(formData.get("contextoLibre") || "").trim() || null;
+  const contextoGrupo = String(formData.get("contextoGrupo") || "").trim() || null;
+  const modo = String(formData.get("modo") || "") === "institucion" ? "institucion" : "independiente";
+
+  let division: string | null = null;
+  let institucion: string | null = null;
+  let localidad: string | null = null;
+  let provincia = docente.provincia;
+
+  if (modo === "institucion") {
+    division = String(formData.get("division") || "").trim() || null;
+    institucion = String(formData.get("institucion") || "").trim() || null;
+    localidad = String(formData.get("localidad") || "").trim() || null;
+    provincia = String(formData.get("provincia") || "").trim() || null;
+
+    // Sin ficha guardada y el docente tipeó los datos a mano: si pidió guardarlos, quedan
+    // en su perfil para la próxima vez — nunca se guardan sin que lo marque explícitamente.
+    if (formData.get("guardarFicha") === "on") {
+      await prisma.docente.update({
+        where: { id: docente.id },
+        data: { institucion, provincia, localidad },
+      });
+    }
+  }
 
   const plan = await prisma.planificacion.create({
     data: {
@@ -84,9 +107,14 @@ export async function crearPlanificacion(formData: FormData) {
       docenteId: docente.id,
       materia,
       curso,
-      provincia: docente.provincia,
+      division,
+      provincia,
       modalidad: docente.modalidad,
+      modo,
+      institucion,
+      localidad,
       contextoLibre,
+      contextoGrupo,
       estado: "EN_PROGRESO",
     },
   });
