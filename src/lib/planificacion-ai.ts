@@ -12,6 +12,7 @@ type ContextoPlan = {
   provincia: string | null;
   modalidad: string | null;
   contextoLibre: string | null;
+  contextoGrupo?: string | null;
 };
 
 function contextoBase(plan: ContextoPlan) {
@@ -23,6 +24,23 @@ function contextoBase(plan: ContextoPlan) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+// Educación Especial: el docente puede compartir notas del grupo en sus propias
+// palabras. Nunca se le pide ni se infiere un diagnóstico — solo se usa lo que
+// escribió, tal cual, en lenguaje pedagógico.
+function contextoGrupoBloque(plan: ContextoPlan) {
+  if (plan.modalidad !== "especial" || !plan.contextoGrupo?.trim()) return "";
+  return `\nNotas del docente sobre el grupo (Educación Especial — usalas tal cual, en lenguaje pedagógico común; NUNCA infieras ni menciones un diagnóstico médico o clínico a partir de esto):\n"""\n${plan.contextoGrupo}\n"""\n`;
+}
+
+// En Educación Especial cada actividad se genera con variantes de apoyo/ampliación
+// por default (no hay toggle escondido) — basadas únicamente en lo que el docente
+// compartió en contextoGrupo, nunca en un diagnóstico inferido.
+function actividadJsonShape(plan: ContextoPlan) {
+  const base = `{ "titulo": string, "tipo": string, "objetivo": string, "duracion": string, "consigna": string, "modalidad": string, "recursos": string, "resultadoEsperado": string`;
+  if (plan.modalidad !== "especial") return `${base} }`;
+  return `${base}, "variantes": { "apoyo": string /* versión con andamiaje adicional de la MISMA actividad */, "ampliacion": string /* versión con mayor desafío de la MISMA actividad */ } }`;
 }
 
 function documentosBloque(textoDocumentos: string) {
@@ -48,7 +66,7 @@ Lo que pide el docente, en sus palabras:
 """
 ${plan.contextoLibre ?? "(sin detalle adicional)"}
 """
-
+${contextoGrupoBloque(plan)}
 ${documentosBloque(textoDocumentos)}
 
 Devolvé SOLO este JSON (sin markdown, sin texto extra):
@@ -105,15 +123,15 @@ Objetivos y contenidos ya aprobados por el docente:
 ${JSON.stringify(objetivosContenidos)}
 
 Recursos disponibles en el aula: ${recursosDisponibles.length ? recursosDisponibles.join(", ") : "no especificados"}.
-
+${contextoGrupoBloque(plan)}
 Devolvé SOLO este JSON:
 {
   "recursosDisponibles": ${JSON.stringify(recursosDisponibles)},
   "metodologia": { "texto": string, "motivo": string, "estado": "sugerencia" },
   "actividades": {
-    "inicio": { "titulo": "Inicio", "tipo": string, "objetivo": string, "duracion": string, "consigna": string, "modalidad": string, "recursos": string, "resultadoEsperado": string },
-    "desarrollo": { "titulo": "Desarrollo", "tipo": string, "objetivo": string, "duracion": string, "consigna": string, "modalidad": string, "recursos": string, "resultadoEsperado": string },
-    "cierre": { "titulo": "Cierre", "tipo": string, "objetivo": string, "duracion": string, "consigna": string, "modalidad": string, "recursos": string, "resultadoEsperado": string }
+    "inicio": ${actividadJsonShape(plan)},
+    "desarrollo": ${actividadJsonShape(plan)},
+    "cierre": ${actividadJsonShape(plan)}
   },
   "chat": []
 }`,

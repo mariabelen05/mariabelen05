@@ -1,5 +1,6 @@
 import { requireDocente } from "@/lib/actions/session-actions";
 import { PerfilForm } from "./perfil-form";
+import { FichaForm } from "./ficha-form";
 import { PasswordForm } from "./password-form";
 import { EliminarCuenta } from "./eliminar-cuenta";
 
@@ -28,7 +29,8 @@ export default async function PerfilPage() {
         <p className="text-sm text-text-faint">{docente.email}</p>
       </div>
 
-      <PerfilForm docente={docente} provincias={PROVINCIAS} modalidades={MODALIDADES} />
+      <PerfilForm docente={docente} modalidades={MODALIDADES} />
+      <FichaForm docente={docente} provincias={PROVINCIAS} />
       <PasswordForm />
       <EliminarCuenta />
 

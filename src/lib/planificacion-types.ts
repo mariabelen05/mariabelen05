@@ -28,6 +28,9 @@ export type Actividad = {
   modalidad: string;
   recursos: string;
   resultadoEsperado: string;
+  // Educación Especial: variantes de la misma actividad, generadas automáticamente
+  // cuando la modalidad de la planificación es "especial" — no es una opción escondida.
+  variantes?: { apoyo: string; ampliacion: string } | null;
 };
 
 export type MetodologiaActividades = {

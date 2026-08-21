@@ -15,9 +15,14 @@ export default function PrivacidadPage() {
       </p>
 
       <Seccion titulo="Qué datos guardamos">
-        Tu nombre, email, edad (si la compartís), provincia y modalidad de enseñanza. También el
-        contenido que generás en la app: planificaciones, evaluaciones, banco de preguntas,
-        recursos y documentos que subís.
+        Tu nombre (para saludarte), email (para iniciar sesión), edad si la compartís, provincia
+        y modalidad de enseñanza. Si completás la Ficha institucional en Mi perfil — institución,
+        localidad, niveles o materias que dictás — también se guarda, pero es opcional y solo se
+        pide ahí, nunca al registrarte. Si trabajás con Educación especial y elegís contarle a
+        Aulera algo del grupo para que lo tenga en cuenta al proponer contenidos, eso también se
+        guarda — en tus propias palabras, nunca como un diagnóstico. También el contenido que
+        generás en la app: planificaciones, evaluaciones, banco de preguntas, recursos y
+        documentos que subís.
       </Seccion>
 
       <Seccion titulo="Para qué los usamos">

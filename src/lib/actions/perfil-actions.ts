@@ -12,17 +12,36 @@ export async function actualizarPerfil(_prev: PerfilState, formData: FormData): 
   const docente = await requireDocente();
   const nombre = String(formData.get("nombre") || "").trim();
   const edad = String(formData.get("edad") || "");
-  const provincia = String(formData.get("provincia") || "") || null;
   const modalidad = String(formData.get("modalidad") || "") || null;
 
   if (!nombre) return { error: "El nombre no puede estar vacío." };
 
   await prisma.docente.update({
     where: { id: docente.id },
-    data: { nombre, edad: edad ? Number(edad) : null, provincia, modalidad },
+    data: { nombre, edad: edad ? Number(edad) : null, modalidad },
   });
   revalidatePath("/perfil");
   return { success: "Perfil actualizado." };
+}
+
+// Ficha institucional — todo opcional, vive solo acá (nunca en /registro). Modo A
+// en Nueva planificación la usa como membrete cuando está completa.
+export async function actualizarFicha(_prev: PerfilState, formData: FormData): Promise<PerfilState> {
+  const docente = await requireDocente();
+  const institucion = String(formData.get("institucion") || "").trim() || null;
+  const provincia = String(formData.get("provincia") || "").trim() || null;
+  const localidad = String(formData.get("localidad") || "").trim() || null;
+  const materiasRaw = String(formData.get("materias") || "").trim();
+  const materias = materiasRaw
+    ? JSON.stringify(materiasRaw.split(",").map((m) => m.trim()).filter(Boolean))
+    : null;
+
+  await prisma.docente.update({
+    where: { id: docente.id },
+    data: { institucion, provincia, localidad, materias },
+  });
+  revalidatePath("/perfil");
+  return { success: "Ficha institucional actualizada." };
 }
 
 export async function cambiarPassword(_prev: PerfilState, formData: FormData): Promise<PerfilState> {

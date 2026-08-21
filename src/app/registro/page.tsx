@@ -38,8 +38,14 @@ export default function RegistroPage() {
         </p>
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
-          <Field label="Nombre completo" name="nombre" placeholder="Marina García" required />
-          <Field label="Email" name="email" type="email" placeholder="marina.garcia@mail.com" required />
+          <Field
+            label="Nombre completo" name="nombre" placeholder="Marina García" required
+            hint="Para saludarte por tu nombre en la app."
+          />
+          <Field
+            label="Email" name="email" type="email" placeholder="marina.garcia@mail.com" required
+            hint="Es tu usuario para iniciar sesión."
+          />
           <Field label="Contraseña" name="password" type="password" placeholder="Mínimo 8 caracteres" required />
           <Field label="Edad (opcional)" name="edad" type="number" placeholder="34" />
 
@@ -113,6 +119,7 @@ function Field(props: {
   type?: string;
   placeholder?: string;
   required?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -124,6 +131,7 @@ function Field(props: {
         required={props.required}
         className="rounded-[11px] border border-border bg-surface px-3.5 py-2.5 text-sm text-text outline-none focus:border-primary"
       />
+      {props.hint && <span className="text-xs text-text-faint">{props.hint}</span>}
     </label>
   );
 }

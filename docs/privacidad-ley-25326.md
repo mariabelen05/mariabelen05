@@ -10,7 +10,9 @@ lanzamiento real, esto lo tiene que revisar un abogado.
 
 | Dato | Modelo | Sensibilidad |
 |---|---|---|
-| Nombre, email, edad, provincia, modalidad | `Docente` | Datos personales básicos |
+| Nombre, email, edad, provincia, modalidad | `Docente` | Datos personales básicos — pedidos en `/registro` |
+| Institución, localidad, niveles/materias generales (Ficha institucional) | `Docente` | Datos personales básicos, **opcionales** — se piden únicamente en `/perfil`, después de iniciar sesión; nunca en `/registro` |
+| Notas del docente sobre el grupo (Educación especial) | `Planificacion.contextoGrupo` | **Nunca un diagnóstico médico/clínico** — texto libre en lenguaje pedagógico que el docente decide compartir por planificación; el prompt a la API de Claude explicita no inferir diagnósticos a partir de esto |
 | Contraseña (hasheada con bcrypt) | `Docente.passwordHash` | Credencial — nunca se guarda en texto plano |
 | Documentos institucionales subidos (y su texto extraído) | `Documento` | Puede contener datos de terceros (alumnos, otros docentes) si el documento los incluye |
 | Contenido de planificaciones, evaluaciones, banco de preguntas | `Planificacion`, `Evaluacion`, `ItemBanco` | Producción propia del docente |
@@ -23,9 +25,16 @@ lanzamiento real, esto lo tiene que revisar un abogado.
   cuenta, y se guarda `Docente.consintioPrivacidadEn` con el timestamp.
   Falta: el contenido de `/privacidad` es un resumen, no un texto legal
   completo — hay que reemplazarlo por la política real antes de producción.
-- **Finalidad y calidad del dato (art. 4).** Los campos que se piden
-  (nombre, email, edad opcional, provincia, modalidad) son razonables para
-  el propósito del producto. No se pide más de lo necesario.
+- **Finalidad y calidad del dato (art. 4).** Los campos que se piden en
+  `/registro` (nombre, email, edad opcional, provincia, modalidad) son
+  razonables para el propósito del producto. No se pide más de lo
+  necesario. La Ficha institucional (institución, localidad, niveles/
+  materias) es enteramente opcional y vive solo en `/perfil`, nunca en el
+  registro — separa explícitamente "necesario para crear la cuenta" de
+  "útil para prellenar planificaciones institucionales". Lo mismo para
+  `contextoGrupo` en Educación especial: es opcional, por planificación, y
+  el prompt a la IA prohíbe explícitamente inferir diagnósticos a partir de
+  ese texto.
 - **Deber de confidencialidad y seguridad (art. 9, disposición AAIP
   11/2006 sobre medidas de seguridad).** Parcial:
   - Contraseñas hasheadas con bcrypt — hecho.
