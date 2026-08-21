@@ -1,4 +1,4 @@
-import { callClaude, parseClaudeJson } from "@/lib/anthropic";
+import { callGemini, parseGeminiJson } from "@/lib/gemini";
 import type {
   ObjetivosContenidos,
   MetodologiaActividades,
@@ -54,7 +54,8 @@ export async function generarObjetivosContenidos(
   plan: ContextoPlan,
   textoDocumentos: string
 ): Promise<ObjetivosContenidos> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -83,14 +84,15 @@ Devolvé SOLO este JSON (sin markdown, sin texto extra):
       },
     ],
   });
-  return parseClaudeJson<ObjetivosContenidos>(raw);
+  return parseGeminiJson<ObjetivosContenidos>(raw);
 }
 
 export async function ajustarObjetivosContenidos(
   actual: ObjetivosContenidos,
   mensaje: string
 ): Promise<ObjetivosContenidos> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -103,7 +105,7 @@ Aplicá el ajuste y devolvé el JSON completo actualizado con la MISMA forma (ob
       },
     ],
   });
-  return parseClaudeJson<ObjetivosContenidos>(raw);
+  return parseGeminiJson<ObjetivosContenidos>(raw);
 }
 
 export async function generarMetodologiaActividades(
@@ -111,7 +113,8 @@ export async function generarMetodologiaActividades(
   objetivosContenidos: ObjetivosContenidos,
   recursosDisponibles: string[]
 ): Promise<MetodologiaActividades> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -138,14 +141,15 @@ Devolvé SOLO este JSON:
       },
     ],
   });
-  return parseClaudeJson<MetodologiaActividades>(raw);
+  return parseGeminiJson<MetodologiaActividades>(raw);
 }
 
 export async function ajustarMetodologiaActividades(
   actual: MetodologiaActividades,
   mensaje: string
 ): Promise<MetodologiaActividades> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -158,7 +162,7 @@ Aplicá el ajuste y devolvé el JSON completo actualizado con la MISMA forma. Ag
       },
     ],
   });
-  return parseClaudeJson<MetodologiaActividades>(raw);
+  return parseGeminiJson<MetodologiaActividades>(raw);
 }
 
 export async function generarInstrumentoEvaluacion(
@@ -167,7 +171,8 @@ export async function generarInstrumentoEvaluacion(
   metodologiaActividades: MetodologiaActividades,
   tiposEvaluacion: string[]
 ): Promise<InstrumentoEvaluacion> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -193,14 +198,15 @@ Devolvé SOLO este JSON:
       },
     ],
   });
-  return parseClaudeJson<InstrumentoEvaluacion>(raw);
+  return parseGeminiJson<InstrumentoEvaluacion>(raw);
 }
 
 export async function ajustarInstrumentoEvaluacion(
   actual: InstrumentoEvaluacion,
   mensaje: string
 ): Promise<InstrumentoEvaluacion> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -213,7 +219,7 @@ Aplicá el ajuste y devolvé el JSON completo actualizado con la MISMA forma. Ag
       },
     ],
   });
-  return parseClaudeJson<InstrumentoEvaluacion>(raw);
+  return parseGeminiJson<InstrumentoEvaluacion>(raw);
 }
 
 export async function verificarCoherencia(
@@ -221,7 +227,8 @@ export async function verificarCoherencia(
   metodologiaActividades: MetodologiaActividades,
   instrumentoEvaluacion: InstrumentoEvaluacion
 ): Promise<CoherenciaReporte> {
-  const raw = await callClaude({
+  const raw = await callGemini({
+    jsonMode: true,
     messages: [
       {
         role: "user",
@@ -254,7 +261,7 @@ Si todo está coherente, "advertencias" puede ser un array vacío.`,
       },
     ],
   });
-  return parseClaudeJson<CoherenciaReporte>(raw);
+  return parseGeminiJson<CoherenciaReporte>(raw);
 }
 
 export async function chatAsistente(params: {
@@ -265,7 +272,7 @@ export async function chatAsistente(params: {
   const historialTexto = params.historial
     .map((m) => `${m.from === "user" ? "Docente" : "Aulera"}: ${m.texto}`)
     .join("\n");
-  return callClaude({
+  return callGemini({
     messages: [
       {
         role: "user",

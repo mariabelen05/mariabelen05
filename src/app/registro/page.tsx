@@ -83,7 +83,7 @@ export default function RegistroPage() {
                 Política de Privacidad
               </Link>{" "}
               de Aulera, incluyendo que el texto de los documentos que suba puede enviarse a la API de
-              Claude para generar sugerencias.
+              Gemini (Google) para generar sugerencias.
             </span>
           </label>
 

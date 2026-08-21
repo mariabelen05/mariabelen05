@@ -1,11 +1,11 @@
 # Aulera
 
 Planificaciones docentes asistidas por IA. Next.js (App Router) + Prisma +
-Auth.js, con la API de Claude como el motor de generación pedagógica.
+Auth.js, con la API de Gemini (Google) como el motor de generación pedagógica.
 
 El diseño visual viene de un proyecto de Claude Design importado a este
 repo; este README cubre todo lo que ese diseño no resuelve por sí solo
-(base de datos, autenticación real, integración con la API de Claude,
+(base de datos, autenticación real, integración con la API de Gemini,
 extracción/OCR de documentos, exportación real a PDF/Word, co-planificación,
 calendario de feriados y guardado offline).
 
@@ -18,7 +18,7 @@ al segundo bloque.
 
 ```bash
 npm install                   # el postinstall corre `prisma generate` solo
-cp .env.example .env          # completá ANTHROPIC_API_KEY y un AUTH_SECRET propio
+cp .env.example .env          # completá GEMINI_API_KEY y un AUTH_SECRET propio
 docker compose up -d          # levanta Postgres local en :5432 (o usá el tuyo)
 npm run build                 # aplica el esquema (prisma migrate deploy) y build
 npm run db:seed               # carga el calendario de feriados 2026
@@ -34,8 +34,8 @@ Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 | `DATABASE_URL` | Conexión **pooleada** (PgBouncer) que usa la app para las queries normales. Local por defecto: `postgresql://aulera:aulera@localhost:5432/aulera` (la crea `docker compose up -d`). |
 | `DIRECT_URL` | Conexión **directa**, sin pooler — la usa `prisma migrate deploy` (necesita un advisory lock que PgBouncer en modo transacción no soporta). En local, mismo valor que `DATABASE_URL`. |
 | `AUTH_SECRET` | Firma las sesiones de Auth.js. **Sin esto, la app tira "problema con la configuración del servidor" apenas entrás** (Auth.js la exige en cuanto corre en modo producción). Generá una propia con `openssl rand -base64 32`. |
-| `ANTHROPIC_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). |
-| `ANTHROPIC_MODEL` | Modelo a usar (default `claude-sonnet-4-5`). |
+| `GEMINI_API_KEY` | **Requerida** para todo lo que genera IA: los 3 pasos de "Nueva planificación", el chat del asistente lateral y la verificación de coherencia. Sin esta clave esas acciones fallan con un error explícito (no rompen el resto de la app). Se genera gratis, sin tarjeta, en [Google AI Studio](https://aistudio.google.com/apikey) — "Get API key" en la barra lateral. |
+| `GEMINI_MODEL` | Modelo a usar (default `gemini-3.5-flash` — el modelo del nivel gratuito, 60 pedidos/minuto sin costo). |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Almacenamiento de archivos (Documentos/Recursos) vía Supabase Storage. **Requeridas en producción** — el filesystem de Vercel es de solo lectura, así que sin esto las subidas fallan con `ENOENT`. En local son opcionales: sin ellas, los archivos se guardan en `./uploads` en disco. La service role key es de Settings → API → Project API keys en Supabase (no la `anon`/pública — esta necesita permiso para escribir en Storage sin pasar por RLS). |
 | `SUPABASE_STORAGE_BUCKET` | Nombre del bucket (default `aulera-uploads`). El bucket se crea solo, privado, la primera vez que se sube un archivo — no hace falta crearlo a mano en el dashboard. |
 
@@ -51,7 +51,7 @@ correr nada a mano ni pegar el connection string en ningún lado.
    - **Transaction pooler** (puerto 6543) → variable `DATABASE_URL`.
    - **Direct connection** (puerto 5432) → variable `DIRECT_URL`.
 2. En Vercel → Settings → Environment Variables, cargá esas dos más
-   `AUTH_SECRET`, `ANTHROPIC_API_KEY`, `SUPABASE_URL` y
+   `AUTH_SECRET`, `GEMINI_API_KEY`, `SUPABASE_URL` y
    `SUPABASE_SERVICE_ROLE_KEY` (esta última en Supabase → Settings → API).
    No hace falta `AUTH_URL` ni `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel
    solo, y el bucket de Storage se crea solo en la primera subida.
@@ -78,8 +78,8 @@ deploy.
   sobre la tabla `Docente` (contraseña hasheada con bcrypt). Cada acción de
   servidor verifica ownership antes de leer o escribir (`requireDocente`,
   `getPlanConAcceso`).
-- **IA** (`src/lib/planificacion-ai.ts`, `src/lib/anthropic.ts`): llamadas
-  reales a la API de Claude para cada paso del asistente. Todo lo generado
+- **IA** (`src/lib/planificacion-ai.ts`, `src/lib/gemini.ts`): llamadas
+  reales a la API de Gemini para cada paso del asistente. Todo lo generado
   se guarda con `estado: "sugerencia"` y el docente lo edita/aprueba
   explícitamente — nunca se presenta como una decisión ya tomada. Si hay
   documentos cargados y vinculados a la planificación, su texto extraído se

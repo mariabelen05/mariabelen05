@@ -31,8 +31,8 @@ export default function PrivacidadPage() {
       </Seccion>
 
       <Seccion titulo="Con quién los compartimos">
-        El texto de tus documentos y de tus planificaciones se envía a la API de Claude
-        (Anthropic) para generar las sugerencias — objetivos, actividades, instrumentos de
+        El texto de tus documentos y de tus planificaciones se envía a la API de Gemini
+        (Google) para generar las sugerencias — objetivos, actividades, instrumentos de
         evaluación y verificación de coherencia. No vendemos ni compartimos tus datos con fines
         publicitarios.
       </Seccion>

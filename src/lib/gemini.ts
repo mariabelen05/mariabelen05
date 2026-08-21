@@ -1,18 +1,19 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, ApiError } from "@google/genai";
 
-let client: Anthropic | null = null;
+let client: GoogleGenAI | null = null;
 
-export function getAnthropicClient() {
-  if (!process.env.ANTHROPIC_API_KEY) {
+export function getGeminiClient() {
+  if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "ANTHROPIC_API_KEY no está configurada. Definila en .env para habilitar las funciones de IA de Aulera."
+      "GEMINI_API_KEY no está configurada. Definila en .env para habilitar las funciones de IA de Aulera."
     );
   }
-  if (!client) client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!client) client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   return client;
 }
 
-export const AULERA_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
+// Flash: el modelo del nivel gratuito de la API de Gemini (sin tarjeta).
+export const AULERA_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
 
 // Every prompt in Aulera includes this rule: the model must never present its
 // output as a finished decision, and must never invent normative/curricular
@@ -26,43 +27,47 @@ Reglas estrictas:
 3. Respondé siempre en español rioplatense, tono profesional y cercano, sin tecnicismos innecesarios.
 4. Cuando te pidan JSON, devolvé JSON válido y nada más (sin texto extra, sin markdown fences).`;
 
-export async function callClaude(params: {
+export async function callGemini(params: {
   system?: string;
-  messages: Anthropic.MessageParam[];
+  messages: { role: "user" | "assistant"; content: string }[];
   maxTokens?: number;
+  jsonMode?: boolean;
 }) {
-  const anthropic = getAnthropicClient();
+  const ai = getGeminiClient();
   try {
-    const response = await anthropic.messages.create({
+    const response = await ai.models.generateContent({
       model: AULERA_MODEL,
-      max_tokens: params.maxTokens ?? 4096,
-      system: params.system ?? AULERA_SYSTEM_PROMPT,
-      messages: params.messages,
+      contents: params.messages.map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      })),
+      config: {
+        systemInstruction: params.system ?? AULERA_SYSTEM_PROMPT,
+        maxOutputTokens: params.maxTokens ?? 4096,
+        ...(params.jsonMode ? { responseMimeType: "application/json" } : {}),
+      },
     });
-    const textBlock = response.content.find((b) => b.type === "text");
-    return textBlock && textBlock.type === "text" ? textBlock.text : "";
+    return response.text ?? "";
   } catch (err) {
     // Log the raw error server-side (visible in Vercel runtime logs) so it
     // stays diagnosable, but never show a docente a raw API/JSON error.
-    console.error("[anthropic] callClaude failed:", err);
-    throw new Error(friendlyClaudeError(err));
+    console.error("[gemini] callGemini failed:", err);
+    throw new Error(friendlyGeminiError(err));
   }
 }
 
-function friendlyClaudeError(err: unknown): string {
-  if (err instanceof Anthropic.APIError) {
-    const message = String(err.error && typeof err.error === "object" && "error" in err.error
-      ? (err.error as { error?: { message?: string } }).error?.message ?? ""
-      : "");
+function friendlyGeminiError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const message = err.message ?? "";
 
-    if (err.status === 400 && /credit balance/i.test(message)) {
-      return "Aulera no puede generar sugerencias en este momento: no hay crédito disponible en la cuenta de IA. Avisale al administrador de la plataforma para que cargue crédito.";
+    if (err.status === 429 || /quota|resource_exhausted/i.test(message)) {
+      return "Aulera está recibiendo muchos pedidos en este momento (o se agotó la cuota gratuita del día). Esperá un minuto y volvé a intentar.";
     }
-    if (err.status === 401) {
+    if (err.status === 400 && /api key not valid|api_key_invalid/i.test(message)) {
       return "Aulera no puede generar sugerencias en este momento: la clave de acceso a la IA no es válida. Avisale al administrador de la plataforma.";
     }
-    if (err.status === 429) {
-      return "Aulera está recibiendo muchos pedidos en este momento. Esperá un minuto y volvé a intentar.";
+    if (err.status === 403) {
+      return "Aulera no puede generar sugerencias en este momento: la clave de acceso a la IA no tiene permiso. Avisale al administrador de la plataforma.";
     }
     if (err.status && err.status >= 500) {
       return "El servicio de IA no está respondiendo en este momento. Volvé a intentar en unos minutos.";
@@ -73,7 +78,7 @@ function friendlyClaudeError(err: unknown): string {
 
 // Strips accidental ```json fences and parses. Throws with the raw text on failure
 // so callers can decide how to surface a bad-generation error to the teacher.
-export function parseClaudeJson<T>(raw: string): T {
+export function parseGeminiJson<T>(raw: string): T {
   const cleaned = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -82,7 +87,7 @@ export function parseClaudeJson<T>(raw: string): T {
     return JSON.parse(cleaned) as T;
   } catch (err) {
     throw new Error(
-      `No se pudo interpretar la respuesta de Claude como JSON: ${(err as Error).message}\n${raw.slice(0, 500)}`
+      `No se pudo interpretar la respuesta de la IA como JSON: ${(err as Error).message}\n${raw.slice(0, 500)}`
     );
   }
 }

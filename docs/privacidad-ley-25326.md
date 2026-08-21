@@ -12,7 +12,7 @@ lanzamiento real, esto lo tiene que revisar un abogado.
 |---|---|---|
 | Nombre, email, edad, provincia, modalidad | `Docente` | Datos personales básicos — pedidos en `/registro` |
 | Institución, localidad, niveles/materias generales (Ficha institucional) | `Docente` | Datos personales básicos, **opcionales** — se piden únicamente en `/perfil`, después de iniciar sesión; nunca en `/registro` |
-| Notas del docente sobre el grupo (Educación especial) | `Planificacion.contextoGrupo` | **Nunca un diagnóstico médico/clínico** — texto libre en lenguaje pedagógico que el docente decide compartir por planificación; el prompt a la API de Claude explicita no inferir diagnósticos a partir de esto |
+| Notas del docente sobre el grupo (Educación especial) | `Planificacion.contextoGrupo` | **Nunca un diagnóstico médico/clínico** — texto libre en lenguaje pedagógico que el docente decide compartir por planificación; el prompt a la API de Gemini explicita no inferir diagnósticos a partir de esto |
 | Contraseña (hasheada con bcrypt) | `Docente.passwordHash` | Credencial — nunca se guarda en texto plano |
 | Documentos institucionales subidos (y su texto extraído) | `Documento` | Puede contener datos de terceros (alumnos, otros docentes) si el documento los incluye |
 | Contenido de planificaciones, evaluaciones, banco de preguntas | `Planificacion`, `Evaluacion`, `ItemBanco` | Producción propia del docente |
@@ -69,7 +69,7 @@ lanzamiento real, esto lo tiene que revisar un abogado.
   Aulera porque:
   - El texto de los documentos institucionales cargados por el docente
     (que puede incluir datos de alumnos u otros terceros) **se envía a la
-    API de Claude (Anthropic)** como contexto para generar sugerencias.
+    API de Gemini (Google)** como contexto para generar sugerencias.
     Esto es una transferencia de datos a un tercero (el proveedor del
     modelo) y tiene que estar contemplada explícitamente en la política de
     privacidad, con la base legal correspondiente.
@@ -96,7 +96,7 @@ lanzamiento real, esto lo tiene que revisar un abogado.
 4. Un canal de contacto para ejercer derechos ARCO sin necesidad de login.
 5. Inscripción de la base de datos ante la AAIP.
 6. ~~Mencionar que el contenido de documentos cargados se envía a la API de
-   Claude~~ Hecho (mencionado en `/privacidad` y en el checkbox de
+   Gemini~~ Hecho (mencionado en `/privacidad` y en el checkbox de
    `/registro`).
 7. Cifrado en reposo + gestión de secretos en el entorno de producción
    (fuera del alcance de este repo: es configuración de infraestructura).
