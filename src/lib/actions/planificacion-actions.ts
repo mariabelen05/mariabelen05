@@ -57,7 +57,7 @@ async function registrarActividad(planificacionId: string, docenteId: string, pa
 }
 
 // Powers the "Editado por [nombre]" label — last human edit/approval on a step,
-// excluding pure AI-generation events so it reflects who touched it, not Claude.
+// excluding pure AI-generation events so it reflects who touched it, not the AI.
 export async function getUltimaEdicion(planId: string, paso: string) {
   const actividad = await prisma.planActivity.findFirst({
     where: { planificacionId: planId, paso, accion: { in: ["edito", "aprobo_paso", "ajusto_via_chat"] } },

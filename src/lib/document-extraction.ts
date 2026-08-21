@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 
-// Extracted text feeds directly into Claude prompts as grounding context —
+// Extracted text feeds directly into Gemini prompts as grounding context —
 // see docs/privacidad-ley-25326.md for what that implies for data handling.
 export type ExtraccionResultado = { texto: string } | { error: string };
 
