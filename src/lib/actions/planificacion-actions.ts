@@ -45,7 +45,7 @@ async function requireEdicion(planId: string) {
   return { docente, plan };
 }
 
-async function textoDocumentosDePlan(planId: string) {
+export async function textoDocumentosDePlan(planId: string) {
   const docs = await prisma.documento.findMany({
     where: { planificacionId: planId, estado: "PROCESADO" },
   });
