@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { subirDocumento } from "@/lib/actions/documentos-actions";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import { UploadIcon } from "@/components/icons";
 
 export function UploadForm({ planificaciones }: { planificaciones: { id: string; titulo: string }[] }) {
@@ -11,6 +12,11 @@ export function UploadForm({ planificaciones }: { planificaciones: { id: string;
 
   const onSubmit = (formData: FormData) => {
     setError(null);
+    const archivo = formData.get("archivo");
+    if (archivo instanceof File && archivo.size > MAX_UPLOAD_BYTES) {
+      setError(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+      return;
+    }
     startTransition(async () => {
       try {
         await subirDocumento(formData);

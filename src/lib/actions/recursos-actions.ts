@@ -5,6 +5,7 @@ import { requireDocente } from "@/lib/actions/session-actions";
 import { revalidatePath } from "next/cache";
 import { RECURSO_COLOR_ORDER } from "@/lib/recurso-colors";
 import { buildStorageKey, uploadFile, deleteFile } from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
 export async function crearRecurso(formData: FormData) {
   const docente = await requireDocente();
@@ -21,6 +22,9 @@ export async function crearRecurso(formData: FormData) {
   let storagePath: string | null = null;
   let mimeType: string | null = null;
   if (archivo instanceof File && archivo.size > 0) {
+    if (archivo.size > MAX_UPLOAD_BYTES) {
+      throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+    }
     storagePath = buildStorageKey(docente.id, archivo.name, "recursos");
     await uploadFile(storagePath, Buffer.from(await archivo.arrayBuffer()), archivo.type || undefined);
     mimeType = archivo.type || null;

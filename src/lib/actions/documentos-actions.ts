@@ -5,6 +5,7 @@ import { requireDocente } from "@/lib/actions/session-actions";
 import { extraerTexto } from "@/lib/document-extraction";
 import { revalidatePath } from "next/cache";
 import { buildStorageKey, uploadFile, downloadFile, deleteFile } from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
 const TIPOS_SOPORTADOS = new Set([
   "application/pdf",
@@ -24,6 +25,9 @@ export async function subirDocumento(formData: FormData) {
 
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("Seleccioná un archivo para subir.");
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
   }
   if (!TIPOS_SOPORTADOS.has(file.type)) {
     throw new Error(`Tipo de archivo no soportado: ${file.type || "desconocido"}`);
