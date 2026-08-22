@@ -138,14 +138,14 @@ export function AppShell({
                   </div>
                   <Link
                     href="/perfil"
-                    className="block rounded-[9px] px-3 py-2 text-[13px] text-text hover:bg-surface"
+                    className="block rounded-[9px] px-3 py-2 text-[13px] text-text hover:bg-purple-soft"
                     onClick={() => setAvatarOpen(false)}
                   >
                     Mi perfil
                   </Link>
                   <Link
                     href="/perfil"
-                    className="block rounded-[9px] px-3 py-2 text-[13px] text-text hover:bg-surface"
+                    className="block rounded-[9px] px-3 py-2 text-[13px] text-text hover:bg-purple-soft"
                     onClick={() => setAvatarOpen(false)}
                   >
                     Configuración

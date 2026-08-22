@@ -16,10 +16,13 @@
   --color-purple-soft: #ede9fe;
 
   --color-text: #1e2340;
-  /* text-text-faint: secondary text (subtitles, descriptions) — WCAG AA on white and on --color-surface.
-     text-text-muted: tertiary, one step lighter (placeholders, tiny timestamps, decorative labels) — still legible, never near-invisible. */
-  --color-text-faint: #5a5f7a;
-  --color-text-muted: #72779b;
+  /* text-text-faint / text-text-muted: secondary/tertiary text (subtitles,
+     descriptions, placeholders, timestamps). Both previously used lighter
+     grays (#5a5f7a / #72779b) but still read as too light against the light
+     surfaces — darkened to the same near-black so nothing in the app looks
+     faint. */
+  --color-text-faint: #232323;
+  --color-text-muted: #232323;
 
   --color-success: #2fb380;
   --color-success-soft: #e4f7ee;
@@ -78,4 +81,29 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 8px;
+}
+
+/* ---------- Global hover "preselect" highlight ----------
+   Every button and selectable chip in the app should highlight in the
+   palette's lilac on hover, app-wide — not styled per screen. Defined once
+   here, unlayered, so it overrides each component's own Tailwind hover:*
+   utility classes (which Tailwind emits inside @layer utilities — unlayered
+   rules win over layered ones regardless of selector specificity).
+
+   Buttons whose own background is already a strong brand/semantic color
+   (primary, danger, warning) keep their existing hover fill and get a
+   Violeta Tiza ring instead, so their color isn't washed out by a pale fill.
+   Nav links inside the sidebar get the same lilac treatment — they're
+   selectable chips too, just rendered as links instead of <button>. */
+button:not(:disabled):not(.bg-primary):not(.bg-danger):not(.bg-warning):hover {
+  background-color: var(--color-purple-soft);
+  border-color: var(--color-purple);
+}
+
+button:not(:disabled):is(.bg-primary, .bg-danger, .bg-warning):hover {
+  box-shadow: 0 0 0 2px var(--color-purple);
+}
+
+nav a:hover {
+  background-color: var(--color-purple-soft);
 }
