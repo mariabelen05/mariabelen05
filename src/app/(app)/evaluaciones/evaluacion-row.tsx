@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { eliminarEvaluacion } from "@/lib/actions/evaluaciones-actions";
 import { TrashIcon } from "@/components/icons";
 import type { Evaluacion } from "@prisma/client";
@@ -13,12 +14,12 @@ export function EvaluacionRow({
   const [pending, startTransition] = useTransition();
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5">
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-bold text-text">{evaluacion.titulo}</div>
+      <Link href={`/evaluaciones/${evaluacion.id}`} className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-bold text-text hover:text-primary">{evaluacion.titulo}</div>
         <div className="text-[11px] text-text-faint">
           {evaluacion.tipo ?? "Sin tipo"}{evaluacion.planificacion && ` · ${evaluacion.planificacion.titulo}`}
         </div>
-      </div>
+      </Link>
       <button
         disabled={pending}
         onClick={() => startTransition(() => eliminarEvaluacion(evaluacion.id))}
