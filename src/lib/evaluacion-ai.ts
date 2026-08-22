@@ -63,6 +63,8 @@ ${JSON.stringify(actual)}
 
 El docente pide este ajuste: "${mensaje}"
 
+Si el texto contiene líneas con el formato exacto "[[img:ID]]", son imágenes que el docente insertó en el documento — dejalas EXACTAMENTE como están, en su misma línea y posición relativa al resto del texto, salvo que el pedido sea explícitamente sacar o mover esa imagen.
+
 Aplicá el ajuste directamente sobre el texto y devolvé el JSON completo actualizado con la MISMA forma (texto, estado, chat). Marcá "estado": "editado". Agregá al array "chat" los dos mensajes nuevos: { "from": "user", "texto": "${mensaje.replace(/"/g, '\\"')}" } y un { "from": "aulera", "texto": "<resumen breve y concreto de qué cambiaste>" }. Devolvé SOLO el JSON.`,
       },
     ],

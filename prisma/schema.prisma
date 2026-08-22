@@ -204,7 +204,24 @@ model Evaluacion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items ItemBanco[]
+  items    ItemBanco[]
+  imagenes EvaluacionImagen[]
+}
+
+// Images the docente inserts inline in the free-write canvas — referenced
+// from Evaluacion.contenido's texto via a `[[img:<id>]]` token on its own
+// line (see src/lib/evaluacion-canvas.ts). Always stored as PNG (normalized
+// on upload) so both the PDF and Word exporters can embed them the same way.
+model EvaluacionImagen {
+  id           String     @id @default(cuid())
+  evaluacionId String
+  evaluacion   Evaluacion @relation(fields: [evaluacionId], references: [id], onDelete: Cascade)
+
+  storagePath String
+  width       Int
+  height      Int
+
+  createdAt DateTime @default(now())
 }
 
 model ItemBanco {
