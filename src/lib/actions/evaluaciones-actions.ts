@@ -139,23 +139,30 @@ const TIPOS_IMAGEN_SOPORTADOS = new Set(["image/png", "image/jpeg", "image/webp"
 // Uploads an image inserted into the canvas. Always re-encoded to PNG via
 // sharp regardless of the source format, so both exporters (pdfkit, docx)
 // only ever have to handle one image type.
-export async function subirImagenEvaluacion(evaluacionId: string, formData: FormData) {
+// Returns { error } instead of throwing for expected validation failures —
+// Next.js redacts thrown Server Action errors to a generic digest in
+// production builds, so a caught, user-facing message must be a return
+// value, not a thrown Error. See https://nextjs.org/docs error-handling guide.
+export async function subirImagenEvaluacion(
+  evaluacionId: string,
+  formData: FormData
+): Promise<{ id: string; width: number; height: number } | { error: string }> {
   const { docente } = await getEvaluacionConAcceso(evaluacionId);
   const archivo = formData.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) {
-    throw new Error("Seleccioná una imagen para insertar.");
+    return { error: "Seleccioná una imagen para insertar." };
   }
   if (!TIPOS_IMAGEN_SOPORTADOS.has(archivo.type)) {
-    throw new Error(`Formato de imagen no soportado: ${archivo.type || "desconocido"}`);
+    return { error: `Formato de imagen no soportado: ${archivo.type || "desconocido"}` };
   }
   if (archivo.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`La imagen pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+    return { error: `La imagen pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.` };
   }
 
   const original = Buffer.from(await archivo.arrayBuffer());
   const png = sharp(original).png();
   const { width, height } = await png.metadata();
-  if (!width || !height) throw new Error("No se pudo procesar la imagen.");
+  if (!width || !height) return { error: "No se pudo procesar la imagen." };
   const bytes = await png.toBuffer();
 
   const storagePath = buildStorageKey(docente.id, `imagen-${Date.now()}.png`, "evaluaciones");

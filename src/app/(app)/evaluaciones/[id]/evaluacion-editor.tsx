@@ -76,8 +76,12 @@ export function EvaluacionEditor({
     try {
       const formData = new FormData();
       formData.append("archivo", file);
-      const { id } = await subirImagenEvaluacion(evaluacionId, formData);
-      const segmentos = insertarImagenEnSegmentos(segmentarContenido(contenido.texto), lastFocusRef.current, id);
+      const resultado = await subirImagenEvaluacion(evaluacionId, formData);
+      if ("error" in resultado) {
+        setError(resultado.error);
+        return;
+      }
+      const segmentos = insertarImagenEnSegmentos(segmentarContenido(contenido.texto), lastFocusRef.current, resultado.id);
       setContenido({ ...contenido, texto: unirSegmentos(segmentos), estado: "editado" });
     } catch (err) {
       setError((err as Error).message);

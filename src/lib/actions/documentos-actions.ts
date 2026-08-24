@@ -23,7 +23,11 @@ const TIPOS_SOPORTADOS = new Set([
 // `archivoStoragePath`/`archivoNombre`/`archivoMimeType` referencing the
 // object it just wrote there, capped at the much higher MAX_DIRECT_UPLOAD_BYTES
 // (enforced in iniciarSubidaDirecta, before the browser ever uploads).
-export async function subirDocumento(formData: FormData) {
+// Returns { error } instead of throwing for expected validation failures —
+// Next.js redacts thrown Server Action errors to a generic digest in
+// production builds, so a caught, user-facing message must be a return
+// value, not a thrown Error. See https://nextjs.org/docs error-handling guide.
+export async function subirDocumento(formData: FormData): Promise<{ error: string } | undefined> {
   const docente = await requireDocente();
   const clasificacion = String(formData.get("clasificacion") || "") || null;
   const planificacionId = String(formData.get("planificacionId") || "") || null;
@@ -36,10 +40,10 @@ export async function subirDocumento(formData: FormData) {
 
   if (file instanceof File && file.size > 0) {
     if (file.size > MAX_UPLOAD_BYTES) {
-      throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+      return { error: `El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.` };
     }
     if (!TIPOS_SOPORTADOS.has(file.type)) {
-      throw new Error(`Tipo de archivo no soportado: ${file.type || "desconocido"}`);
+      return { error: `Tipo de archivo no soportado: ${file.type || "desconocido"}` };
     }
     nombreArchivo = file.name;
     mimeType = file.type;
@@ -48,14 +52,14 @@ export async function subirDocumento(formData: FormData) {
     await uploadFile(storagePath, bytes, mimeType || undefined);
   } else {
     const storagePathDirecto = String(formData.get("archivoStoragePath") || "");
-    if (!storagePathDirecto) throw new Error("Seleccioná un archivo para subir.");
+    if (!storagePathDirecto) return { error: "Seleccioná un archivo para subir." };
     // Direct-upload paths are always ones we minted for this docente in
     // iniciarSubidaDirecta — reject anything else rather than trust a
     // client-supplied path blindly.
-    if (!storagePathDirecto.startsWith(`${docente.id}/`)) throw new Error("Ruta de archivo inválida.");
+    if (!storagePathDirecto.startsWith(`${docente.id}/`)) return { error: "Ruta de archivo inválida." };
     mimeType = String(formData.get("archivoMimeType") || "");
     if (!TIPOS_SOPORTADOS.has(mimeType)) {
-      throw new Error(`Tipo de archivo no soportado: ${mimeType || "desconocido"}`);
+      return { error: `Tipo de archivo no soportado: ${mimeType || "desconocido"}` };
     }
     nombreArchivo = String(formData.get("archivoNombre") || "archivo");
     storagePath = storagePathDirecto;

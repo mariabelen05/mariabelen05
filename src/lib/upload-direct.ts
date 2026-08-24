@@ -17,25 +17,27 @@ function getSupabaseBrowserClient(): SupabaseClient | null {
 
 // Uploads `archivo` straight from the browser to Supabase Storage using a
 // signed URL from `iniciar` — the file bytes never pass through a Server
-// Action. Returns null (never throws for "not configured") when either half
+// Action. Returns null (never an error, "not configured") when either half
 // of the setup — the browser's public keys or the server's Supabase Storage
 // config — is missing, so the caller can transparently fall back to the
 // traditional through-the-server upload instead of failing the whole flow.
+// Returns `{ error }` (rather than throwing) when the file was rejected or
+// the upload itself failed, so callers show that message as-is.
 export async function subirArchivoDirecto(
   archivo: File,
   folder: string | undefined,
   iniciar: (nombreArchivo: string, tamano: number, folder?: string) => Promise<InicioSubidaDirecta>
-): Promise<{ path: string } | null> {
+): Promise<{ path: string } | { error: string } | null> {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return null;
 
   const inicio = await iniciar(archivo.name, archivo.size, folder);
-  if (!inicio.soportado) return null;
+  if (!inicio.soportado) return inicio.error ? { error: inicio.error } : null;
 
   const { error } = await supabase.storage
     .from(inicio.bucket)
     .uploadToSignedUrl(inicio.path, inicio.token, archivo, { contentType: archivo.type || undefined });
-  if (error) throw new Error(`No se pudo subir el archivo: ${error.message}`);
+  if (error) return { error: `No se pudo subir el archivo: ${error.message}` };
 
   return { path: inicio.path };
 }

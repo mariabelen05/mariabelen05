@@ -6,13 +6,16 @@ import { MAX_DIRECT_UPLOAD_BYTES, MAX_DIRECT_UPLOAD_LABEL } from "@/lib/upload-l
 
 export type InicioSubidaDirecta =
   | { soportado: true; path: string; token: string; bucket: string }
-  | { soportado: false };
+  // `error` set means "don't fall back, show this to the user" (e.g. the file
+  // is over the limit even for direct upload); absent means "not configured
+  // here, fall back to the traditional through-the-server upload" — see
+  // subirArchivoDirecto. Returned rather than thrown because Next.js redacts
+  // thrown Server Action errors to a generic digest in production builds.
+  | { soportado: false; error?: string };
 
 // Called before the browser uploads anything, so the size limit is enforced
 // server-side even though the bytes themselves will bypass the server
-// entirely. Returns { soportado: false } when Supabase Storage isn't
-// configured (local dev without credentials) — callers fall back to
-// uploading through the existing Server Action path in that case.
+// entirely.
 export async function iniciarSubidaDirecta(
   nombreArchivo: string,
   tamano: number,
@@ -21,7 +24,10 @@ export async function iniciarSubidaDirecta(
   const docente = await requireDocente();
   if (!subidaDirectaDisponible()) return { soportado: false };
   if (tamano > MAX_DIRECT_UPLOAD_BYTES) {
-    throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_DIRECT_UPLOAD_LABEL}.`);
+    return {
+      soportado: false,
+      error: `El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_DIRECT_UPLOAD_LABEL}.`,
+    };
   }
   const { path, token, bucket } = await crearSubidaFirmada(docente.id, nombreArchivo, folder);
   return { soportado: true, path, token, bucket };

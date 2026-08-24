@@ -23,15 +23,24 @@ export function RecursoForm({ planificaciones }: { planificaciones: { id: string
           const directo = await subirArchivoDirecto(archivo, "recursos", iniciarSubidaDirecta).finally(() =>
             setSubiendoDirecto(false)
           );
+          if (directo && "error" in directo) {
+            setError(directo.error);
+            return;
+          }
           if (directo) {
             formData.delete("archivo");
             formData.set("archivoStoragePath", directo.path);
             formData.set("archivoMimeType", archivo.type);
           } else if (archivo.size > MAX_UPLOAD_BYTES) {
-            throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+            setError(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+            return;
           }
         }
-        await crearRecurso(formData);
+        const resultado = await crearRecurso(formData);
+        if (resultado?.error) {
+          setError(resultado.error);
+          return;
+        }
         formRef.current?.reset();
       } catch (e) {
         setError((e as Error).message);
