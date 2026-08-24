@@ -17,32 +17,57 @@ const TIPOS_SOPORTADOS = new Set([
   "text/plain",
 ]);
 
+// The form submits either a real File in `archivo` (uploaded through this
+// Server Action, capped at MAX_UPLOAD_BYTES) or — when the browser already
+// uploaded it directly to Supabase Storage, see subirArchivoDirecto —
+// `archivoStoragePath`/`archivoNombre`/`archivoMimeType` referencing the
+// object it just wrote there, capped at the much higher MAX_DIRECT_UPLOAD_BYTES
+// (enforced in iniciarSubidaDirecta, before the browser ever uploads).
 export async function subirDocumento(formData: FormData) {
   const docente = await requireDocente();
-  const file = formData.get("archivo");
   const clasificacion = String(formData.get("clasificacion") || "") || null;
   const planificacionId = String(formData.get("planificacionId") || "") || null;
 
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Seleccioná un archivo para subir.");
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
-  }
-  if (!TIPOS_SOPORTADOS.has(file.type)) {
-    throw new Error(`Tipo de archivo no soportado: ${file.type || "desconocido"}`);
-  }
+  const file = formData.get("archivo");
+  let storagePath: string;
+  let nombreArchivo: string;
+  let mimeType: string;
+  let bytes: Buffer;
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const storagePath = buildStorageKey(docente.id, file.name);
-  await uploadFile(storagePath, bytes, file.type || undefined);
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+    }
+    if (!TIPOS_SOPORTADOS.has(file.type)) {
+      throw new Error(`Tipo de archivo no soportado: ${file.type || "desconocido"}`);
+    }
+    nombreArchivo = file.name;
+    mimeType = file.type;
+    bytes = Buffer.from(await file.arrayBuffer());
+    storagePath = buildStorageKey(docente.id, nombreArchivo);
+    await uploadFile(storagePath, bytes, mimeType || undefined);
+  } else {
+    const storagePathDirecto = String(formData.get("archivoStoragePath") || "");
+    if (!storagePathDirecto) throw new Error("Seleccioná un archivo para subir.");
+    // Direct-upload paths are always ones we minted for this docente in
+    // iniciarSubidaDirecta — reject anything else rather than trust a
+    // client-supplied path blindly.
+    if (!storagePathDirecto.startsWith(`${docente.id}/`)) throw new Error("Ruta de archivo inválida.");
+    mimeType = String(formData.get("archivoMimeType") || "");
+    if (!TIPOS_SOPORTADOS.has(mimeType)) {
+      throw new Error(`Tipo de archivo no soportado: ${mimeType || "desconocido"}`);
+    }
+    nombreArchivo = String(formData.get("archivoNombre") || "archivo");
+    storagePath = storagePathDirecto;
+    bytes = await downloadFile(storagePath);
+  }
 
   const doc = await prisma.documento.create({
     data: {
       docenteId: docente.id,
       planificacionId,
-      nombreArchivo: file.name,
-      mimeType: file.type,
+      nombreArchivo,
+      mimeType,
       storagePath,
       clasificacion,
       estado: "PROCESANDO",
@@ -51,7 +76,7 @@ export async function subirDocumento(formData: FormData) {
 
   // Extraction runs inline (no background job queue in v1) — the request
   // waits for it, so the UI shows PROCESADO/ERROR as soon as the upload returns.
-  const resultado = await extraerTexto(bytes, file.type);
+  const resultado = await extraerTexto(bytes, mimeType);
   if ("error" in resultado) {
     await prisma.documento.update({
       where: { id: doc.id },

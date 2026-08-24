@@ -7,6 +7,12 @@ import { RECURSO_COLOR_ORDER } from "@/lib/recurso-colors";
 import { buildStorageKey, uploadFile, deleteFile } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
+// The form submits either a real File in `archivo` (uploaded through this
+// Server Action, capped at MAX_UPLOAD_BYTES) or — when the browser already
+// uploaded it directly to Supabase Storage, see subirArchivoDirecto —
+// `archivoStoragePath`/`archivoMimeType` referencing the object it just
+// wrote there, capped at the much higher MAX_DIRECT_UPLOAD_BYTES (enforced
+// in iniciarSubidaDirecta, before the browser ever uploads).
 export async function crearRecurso(formData: FormData) {
   const docente = await requireDocente();
   const titulo = String(formData.get("titulo") || "").trim();
@@ -28,6 +34,16 @@ export async function crearRecurso(formData: FormData) {
     storagePath = buildStorageKey(docente.id, archivo.name, "recursos");
     await uploadFile(storagePath, Buffer.from(await archivo.arrayBuffer()), archivo.type || undefined);
     mimeType = archivo.type || null;
+  } else {
+    const storagePathDirecto = String(formData.get("archivoStoragePath") || "");
+    if (storagePathDirecto) {
+      // Direct-upload paths are always ones we minted for this docente in
+      // iniciarSubidaDirecta — reject anything else rather than trust a
+      // client-supplied path blindly.
+      if (!storagePathDirecto.startsWith(`${docente.id}/`)) throw new Error("Ruta de archivo inválida.");
+      storagePath = storagePathDirecto;
+      mimeType = String(formData.get("archivoMimeType") || "") || null;
+    }
   }
 
   if (!storagePath && !url) throw new Error("Subí un archivo o pegá un enlace.");

@@ -38,6 +38,7 @@ Abrí http://localhost:3000 — te redirige a `/registro` la primera vez.
 | `GEMINI_MODEL` | Modelo a usar (default `gemini-3.5-flash` — el modelo del nivel gratuito, 60 pedidos/minuto sin costo). |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Almacenamiento de archivos (Documentos/Recursos) vía Supabase Storage. **Requeridas en producción** — el filesystem de Vercel es de solo lectura, así que sin esto las subidas fallan con `ENOENT`. En local son opcionales: sin ellas, los archivos se guardan en `./uploads` en disco. La service role key es de Settings → API → Project API keys en Supabase (no la `anon`/pública — esta necesita permiso para escribir en Storage sin pasar por RLS). |
 | `SUPABASE_STORAGE_BUCKET` | Nombre del bucket (default `aulera-uploads`). El bucket se crea solo, privado, la primera vez que se sube un archivo — no hace falta crearlo a mano en el dashboard. |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Mismo proyecto que `SUPABASE_URL`, pero la URL pública y la `anon` key (sí, la pública — es segura de exponer al navegador, a diferencia de la service role key). Habilitan que Documentos/Recursos suban el archivo directo del navegador a Storage con una URL firmada, sin pasar por una Server Action — así se evita el límite de ~4.5MB por payload de las Serverless Functions de Vercel. Opcionales: sin ellas la subida sigue funcionando, pero pasa por el servidor con el límite más chico (`MAX_UPLOAD_BYTES` en `src/lib/upload-limits.ts`). Ambas están en Settings → API del proyecto de Supabase. |
 
 ### Deploy en Vercel + Supabase
 
@@ -55,6 +56,11 @@ correr nada a mano ni pegar el connection string en ningún lado.
    `SUPABASE_SERVICE_ROLE_KEY` (esta última en Supabase → Settings → API).
    No hace falta `AUTH_URL` ni `AUTH_TRUST_HOST`: Auth.js v5 detecta Vercel
    solo, y el bucket de Storage se crea solo en la primera subida.
+   Sumá también `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (mismo proyecto, Settings → API) para que Documentos/Recursos suban
+   directo al navegador y no queden atados al límite de payload de las
+   funciones de Vercel — sin ellas la app funciona igual, pero con un
+   límite de tamaño de archivo más chico.
 3. Redeploy (o el próximo push a la rama). El log del build va a mostrar
    `prisma migrate deploy` aplicando lo pendiente antes de `next build`.
 4. (Opcional, una sola vez) `DATABASE_URL="..." npm run db:seed` desde tu
@@ -98,6 +104,17 @@ deploy.
   (pensado para desarrollo local, no para producción). Cada descarga pasa
   por una ruta propia que primero verifica ownership (`requireDocente`) —
   el bucket es privado, nadie accede al archivo sin pasar por esa acción.
+  Con `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` configuradas,
+  el navegador sube el archivo directo a Storage con una URL firmada de un
+  solo uso (`iniciarSubidaDirecta` en `src/lib/actions/upload-actions.ts` la
+  emite; `subirArchivoDirecto` en `src/lib/upload-direct.ts` la usa) — el
+  archivo nunca pasa por una Server Action, así que el límite pasa de ser el
+  de Vercel (~4.5MB por función) a `MAX_DIRECT_UPLOAD_BYTES` (25MB, en
+  `src/lib/upload-limits.ts`). Sin esas dos variables, o al subir desde
+  disco local, cae de vuelta a subir a través del servidor con el límite
+  más chico (`MAX_UPLOAD_BYTES`, 3.5MB) — ambos caminos terminan en el
+  mismo `subirDocumento`/`crearRecurso`, que acepta el archivo ya subido
+  (`archivoStoragePath`) o los bytes crudos (`archivo`), lo que haya llegado.
 - **Exportación** (`src/app/api/planificaciones/[id]/export/route.ts`):
   genera un PDF real (pdfkit) y un .docx real (paquete `docx`) a partir
   del contenido aprobado, no una captura de pantalla.
