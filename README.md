@@ -109,12 +109,18 @@ deploy.
   solo uso (`iniciarSubidaDirecta` en `src/lib/actions/upload-actions.ts` la
   emite; `subirArchivoDirecto` en `src/lib/upload-direct.ts` la usa) — el
   archivo nunca pasa por una Server Action, así que el límite pasa de ser el
-  de Vercel (~4.5MB por función) a `MAX_DIRECT_UPLOAD_BYTES` (25MB, en
-  `src/lib/upload-limits.ts`). Sin esas dos variables, o al subir desde
-  disco local, cae de vuelta a subir a través del servidor con el límite
-  más chico (`MAX_UPLOAD_BYTES`, 3.5MB) — ambos caminos terminan en el
-  mismo `subirDocumento`/`crearRecurso`, que acepta el archivo ya subido
+  de Vercel (~4.5MB por función) a `MAX_DIRECT_UPLOAD_BYTES` (50MB, en
+  `src/lib/upload-limits.ts` — el máximo real por archivo del plan gratis
+  de Supabase Storage). Sin esas dos variables, o al subir desde disco
+  local, cae de vuelta a subir a través del servidor con el límite más
+  chico (`MAX_UPLOAD_BYTES`, 3.5MB) — ambos caminos terminan en el mismo
+  `subirDocumento`/`crearRecurso`, que acepta el archivo ya subido
   (`archivoStoragePath`) o los bytes crudos (`archivo`), lo que haya llegado.
+  Ojo: el plan gratis de Supabase tiene 1GB de almacenamiento total para
+  todo el proyecto — con archivos de hasta 50MB eso se llena rápido si se
+  suben varios; no hay chequeo de cuota restante antes de subir, solo el
+  error de Supabase si se pasa (se le muestra al docente como mensaje, no
+  como pantalla rota — ver `subirArchivoDirecto` en `src/lib/upload-direct.ts`).
 - **Exportación** (`src/app/api/planificaciones/[id]/export/route.ts`):
   genera un PDF real (pdfkit) y un .docx real (paquete `docx`) a partir
   del contenido aprobado, no una captura de pantalla.

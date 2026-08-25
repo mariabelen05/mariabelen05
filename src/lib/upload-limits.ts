@@ -13,10 +13,13 @@ export const MAX_UPLOAD_LABEL = "3.5MB";
 
 // Ceiling for direct browser -> Supabase Storage uploads (signed URL) —
 // bytes never pass through a Vercel function, so this isn't bound by its
-// payload limit. 25MB comfortably covers scanned multi-page PDFs, dense
-// DOCX/PPTX, or a chart-heavy image, while keeping upload time reasonable
-// on the slower rural/low-connectivity connections this app is meant to
-// support, and staying well under Supabase's default 50MB per-file cap and
-// the free tier's 1GB total bucket quota.
-export const MAX_DIRECT_UPLOAD_BYTES = 25 * 1024 * 1024;
-export const MAX_DIRECT_UPLOAD_LABEL = "25MB";
+// payload limit. 50MB is the free-tier Supabase Storage project's actual
+// per-file cap (raising it further requires a paid plan), not a number we
+// chose. NOTE: the free tier's total bucket quota is 1GB project-wide, so a
+// handful of files at this size fills it fast — there's no per-file check
+// against remaining quota, only Supabase's own "over quota" error at upload
+// time (surfaced to the user via subirArchivoDirecto, not swallowed).
+// Monitor usage in the Supabase dashboard and reconsider this ceiling (or
+// add a usage check) if uploads are frequent and large in practice.
+export const MAX_DIRECT_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_DIRECT_UPLOAD_LABEL = "50MB";
