@@ -6,7 +6,7 @@ import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
 import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
-import { SparkleIcon, SearchIcon } from "@/components/icons";
+import { SparkleIcon, SearchIcon, XIcon, PlusIcon } from "@/components/icons";
 import { HighlightedTextarea, HighlightedInput } from "@/components/highlighted-fields";
 import { countMatches } from "@/lib/text-highlight";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
@@ -171,8 +171,40 @@ export function Paso1Editor({
               rows={2}
               className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
             />
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() =>
+                  setContenido({
+                    ...contenido,
+                    objetivosEspecificos: contenido.objetivosEspecificos.filter((_, idx) => idx !== i),
+                  })
+                }
+                aria-label="Quitar objetivo"
+                className="mt-2 shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ))}
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() =>
+              setContenido({
+                ...contenido,
+                objetivosEspecificos: [
+                  ...contenido.objetivosEspecificos,
+                  { id: crypto.randomUUID(), texto: "", estado: "editado" },
+                ],
+              })
+            }
+            className="flex w-fit items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-[12.5px] font-bold text-primary hover:bg-primary-soft"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> Agregar
+          </button>
+        )}
       </section>
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
@@ -195,6 +227,21 @@ export function Paso1Editor({
               <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary">
                 {u.tag}
               </span>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContenido({
+                      ...contenido,
+                      unidadesContenido: contenido.unidadesContenido.filter((_, idx) => idx !== i),
+                    })
+                  }
+                  aria-label="Quitar unidad"
+                  className="shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <ul className="flex flex-col gap-1.5 pl-4">
               {u.subtemas.map((s, j) => (
@@ -214,11 +261,55 @@ export function Paso1Editor({
                     }}
                     className="rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none focus:border-border disabled:opacity-70"
                   />
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextU = [...contenido.unidadesContenido];
+                        nextU[i] = { ...u, subtemas: u.subtemas.filter((_, idx) => idx !== j) };
+                        setContenido({ ...contenido, unidadesContenido: nextU });
+                      }}
+                      aria-label="Quitar contenido"
+                      className="shrink-0 rounded-full p-0.5 text-text-faint hover:bg-danger-soft hover:text-danger"
+                    >
+                      <XIcon className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextU = [...contenido.unidadesContenido];
+                  nextU[i] = { ...u, subtemas: [...u.subtemas, { id: crypto.randomUUID(), texto: "" }] };
+                  setContenido({ ...contenido, unidadesContenido: nextU });
+                }}
+                className="ml-4 flex w-fit items-center gap-1.5 rounded-[8px] border border-dashed border-border px-2.5 py-1 text-[11.5px] font-bold text-primary hover:bg-primary-soft"
+              >
+                <PlusIcon className="h-3 w-3" /> Agregar contenido
+              </button>
+            )}
           </div>
         ))}
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() =>
+              setContenido({
+                ...contenido,
+                unidadesContenido: [
+                  ...contenido.unidadesContenido,
+                  { id: crypto.randomUUID(), titulo: "", tag: "Conceptual", subtemas: [] },
+                ],
+              })
+            }
+            className="flex w-fit items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-[12.5px] font-bold text-primary hover:bg-primary-soft"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> Agregar unidad
+          </button>
+        )}
       </section>
 
       {error && <p className="text-xs text-danger">{error}</p>}
