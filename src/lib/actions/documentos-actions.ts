@@ -73,6 +73,7 @@ export async function subirDocumento(formData: FormData): Promise<{ error: strin
       nombreArchivo,
       mimeType,
       storagePath,
+      tamano: bytes.length,
       clasificacion,
       estado: "PROCESANDO",
     },

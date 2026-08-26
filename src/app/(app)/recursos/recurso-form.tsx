@@ -31,6 +31,7 @@ export function RecursoForm({ planificaciones }: { planificaciones: { id: string
             formData.delete("archivo");
             formData.set("archivoStoragePath", directo.path);
             formData.set("archivoMimeType", archivo.type);
+            formData.set("archivoTamano", String(archivo.size));
           } else if (archivo.size > MAX_UPLOAD_BYTES) {
             setError(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
             return;

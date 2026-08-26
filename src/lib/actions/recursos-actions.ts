@@ -31,6 +31,7 @@ export async function crearRecurso(formData: FormData): Promise<{ error: string 
 
   let storagePath: string | null = null;
   let mimeType: string | null = null;
+  let tamano: number | null = null;
   if (archivo instanceof File && archivo.size > 0) {
     if (archivo.size > MAX_UPLOAD_BYTES) {
       return { error: `El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.` };
@@ -38,6 +39,7 @@ export async function crearRecurso(formData: FormData): Promise<{ error: string 
     storagePath = buildStorageKey(docente.id, archivo.name, "recursos");
     await uploadFile(storagePath, Buffer.from(await archivo.arrayBuffer()), archivo.type || undefined);
     mimeType = archivo.type || null;
+    tamano = archivo.size;
   } else {
     const storagePathDirecto = String(formData.get("archivoStoragePath") || "");
     if (storagePathDirecto) {
@@ -47,6 +49,9 @@ export async function crearRecurso(formData: FormData): Promise<{ error: string 
       if (!storagePathDirecto.startsWith(`${docente.id}/`)) return { error: "Ruta de archivo inválida." };
       storagePath = storagePathDirecto;
       mimeType = String(formData.get("archivoMimeType") || "") || null;
+      // Sent by the client (subirArchivoDirecto already knows the file's
+      // size before upload) — the server never sees the bytes on this path.
+      tamano = Number(formData.get("archivoTamano")) || null;
     }
   }
 
@@ -63,6 +68,7 @@ export async function crearRecurso(formData: FormData): Promise<{ error: string 
       url,
       storagePath,
       mimeType,
+      tamano,
     },
   });
   revalidatePath("/recursos");

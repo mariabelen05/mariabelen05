@@ -169,7 +169,7 @@ export async function subirImagenEvaluacion(
   await uploadFile(storagePath, bytes, "image/png");
 
   const imagen = await prisma.evaluacionImagen.create({
-    data: { evaluacionId, storagePath, width, height },
+    data: { evaluacionId, storagePath, width, height, tamano: bytes.length },
   });
   return { id: imagen.id, width, height };
 }
