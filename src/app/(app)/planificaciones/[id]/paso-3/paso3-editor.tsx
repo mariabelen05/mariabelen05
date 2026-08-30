@@ -8,7 +8,7 @@ import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
 import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
-import { SparkleIcon, CheckIcon, AlertIcon } from "@/components/icons";
+import { SparkleIcon, CheckIcon, AlertIcon, XIcon, PlusIcon } from "@/components/icons";
 import type { InstrumentoEvaluacion, CoherenciaReporte } from "@/lib/planificacion-types";
 
 const TIPOS = ["Diagnóstica", "Formativa", "Sumativa"];
@@ -157,18 +157,40 @@ export function Paso3Editor({
         <div className="mt-1 flex flex-col gap-2">
           <span className="text-[11.5px] font-semibold text-text-faint">Criterios</span>
           {contenido.criterios.map((c, i) => (
-            <input
-              key={i}
-              disabled={readOnly}
-              value={c}
-              onChange={(e) => {
-                const next = [...contenido.criterios];
-                next[i] = e.target.value;
-                setContenido({ ...contenido, criterios: next });
-              }}
-              className="rounded-[10px] border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-primary disabled:opacity-70"
-            />
+            <div key={i} className="flex items-center gap-2">
+              <input
+                disabled={readOnly}
+                value={c}
+                onChange={(e) => {
+                  const next = [...contenido.criterios];
+                  next[i] = e.target.value;
+                  setContenido({ ...contenido, criterios: next });
+                }}
+                className="w-full rounded-[10px] border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-primary disabled:opacity-70"
+              />
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContenido({ ...contenido, criterios: contenido.criterios.filter((_, idx) => idx !== i) })
+                  }
+                  aria-label="Quitar criterio"
+                  className="shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           ))}
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setContenido({ ...contenido, criterios: [...contenido.criterios, ""] })}
+              className="flex w-fit items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-[12.5px] font-bold text-primary hover:bg-primary-soft"
+            >
+              <PlusIcon className="h-3.5 w-3.5" /> Agregar
+            </button>
+          )}
         </div>
       </section>
 

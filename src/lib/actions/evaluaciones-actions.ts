@@ -1,11 +1,15 @@
 "use server";
 
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { requireDocente } from "@/lib/actions/session-actions";
 import { textoDocumentosDePlan } from "@/lib/actions/planificacion-actions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { generarContenidoEvaluacion, ajustarContenidoEvaluacion } from "@/lib/evaluacion-ai";
+import { buildStorageKey, uploadFile, deleteFile } from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
+import { extraerIdsImagenes } from "@/lib/evaluacion-canvas";
 import type { EvaluacionContenido } from "@/lib/evaluacion-types";
 import type { ObjetivosContenidos, MetodologiaActividades } from "@/lib/planificacion-types";
 
@@ -70,6 +74,19 @@ async function contextoPlanificacionDeEvaluacion(planificacionId: string | null)
   return partes.join("\n");
 }
 
+// Deletes any EvaluacionImagen row (and its storage file) no longer
+// referenced by the saved texto — e.g. the docente removed the image from
+// the canvas, or an AI regenerate/ajuste replaced the whole document.
+async function limpiarImagenesHuerfanas(evaluacionId: string, texto: string) {
+  const idsReferenciados = new Set(extraerIdsImagenes(texto));
+  const imagenes = await prisma.evaluacionImagen.findMany({ where: { evaluacionId } });
+  const huerfanas = imagenes.filter((img) => !idsReferenciados.has(img.id));
+  if (!huerfanas.length) return;
+
+  await prisma.evaluacionImagen.deleteMany({ where: { id: { in: huerfanas.map((h) => h.id) } } });
+  await Promise.all(huerfanas.map((h) => deleteFile(h.storagePath).catch(() => {})));
+}
+
 export async function generarContenidoEvaluacionAction(evaluacionId: string) {
   const { evaluacion } = await getEvaluacionConAcceso(evaluacionId);
   const [contextoPlanificacion, textoDocumentos] = await Promise.all([
@@ -85,6 +102,7 @@ export async function generarContenidoEvaluacionAction(evaluacionId: string) {
   });
 
   await prisma.evaluacion.update({ where: { id: evaluacionId }, data: { contenido: JSON.stringify(contenido) } });
+  await limpiarImagenesHuerfanas(evaluacionId, contenido.texto);
   revalidatePath(`/evaluaciones/${evaluacionId}`);
 }
 
@@ -99,6 +117,7 @@ export async function ajustarContenidoEvaluacionAction(
   await getEvaluacionConAcceso(evaluacionId);
   const actualizado = await ajustarContenidoEvaluacion(contenidoActual, mensaje);
   await prisma.evaluacion.update({ where: { id: evaluacionId }, data: { contenido: JSON.stringify(actualizado) } });
+  await limpiarImagenesHuerfanas(evaluacionId, actualizado.texto);
   revalidatePath(`/evaluaciones/${evaluacionId}`);
   return actualizado;
 }
@@ -111,5 +130,46 @@ export async function guardarContenidoEvaluacionAction(
   await getEvaluacionConAcceso(evaluacionId);
   const final: EvaluacionContenido = aprobar ? { ...contenido, estado: "aprobado" } : contenido;
   await prisma.evaluacion.update({ where: { id: evaluacionId }, data: { contenido: JSON.stringify(final) } });
+  await limpiarImagenesHuerfanas(evaluacionId, final.texto);
   revalidatePath(`/evaluaciones/${evaluacionId}`);
+}
+
+const TIPOS_IMAGEN_SOPORTADOS = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
+// Uploads an image inserted into the canvas. Always re-encoded to PNG via
+// sharp regardless of the source format, so both exporters (pdfkit, docx)
+// only ever have to handle one image type.
+// Returns { error } instead of throwing for expected validation failures —
+// Next.js redacts thrown Server Action errors to a generic digest in
+// production builds, so a caught, user-facing message must be a return
+// value, not a thrown Error. See https://nextjs.org/docs error-handling guide.
+export async function subirImagenEvaluacion(
+  evaluacionId: string,
+  formData: FormData
+): Promise<{ id: string; width: number; height: number } | { error: string }> {
+  const { docente } = await getEvaluacionConAcceso(evaluacionId);
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Seleccioná una imagen para insertar." };
+  }
+  if (!TIPOS_IMAGEN_SOPORTADOS.has(archivo.type)) {
+    return { error: `Formato de imagen no soportado: ${archivo.type || "desconocido"}` };
+  }
+  if (archivo.size > MAX_UPLOAD_BYTES) {
+    return { error: `La imagen pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.` };
+  }
+
+  const original = Buffer.from(await archivo.arrayBuffer());
+  const png = sharp(original).png();
+  const { width, height } = await png.metadata();
+  if (!width || !height) return { error: "No se pudo procesar la imagen." };
+  const bytes = await png.toBuffer();
+
+  const storagePath = buildStorageKey(docente.id, `imagen-${Date.now()}.png`, "evaluaciones");
+  await uploadFile(storagePath, bytes, "image/png");
+
+  const imagen = await prisma.evaluacionImagen.create({
+    data: { evaluacionId, storagePath, width, height, tamano: bytes.length },
+  });
+  return { id: imagen.id, width, height };
 }

@@ -2,24 +2,46 @@
 
 import { useRef, useState, useTransition } from "react";
 import { crearRecurso } from "@/lib/actions/recursos-actions";
+import { iniciarSubidaDirecta } from "@/lib/actions/upload-actions";
+import { subirArchivoDirecto } from "@/lib/upload-direct";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import { ArchiveIcon } from "@/components/icons";
 
 export function RecursoForm({ planificaciones }: { planificaciones: { id: string; titulo: string }[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [subiendoDirecto, setSubiendoDirecto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = (formData: FormData) => {
     setError(null);
     const archivo = formData.get("archivo");
-    if (archivo instanceof File && archivo.size > MAX_UPLOAD_BYTES) {
-      setError(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
-      return;
-    }
     startTransition(async () => {
       try {
-        await crearRecurso(formData);
+        if (archivo instanceof File && archivo.size > 0) {
+          setSubiendoDirecto(true);
+          const directo = await subirArchivoDirecto(archivo, "recursos", iniciarSubidaDirecta).finally(() =>
+            setSubiendoDirecto(false)
+          );
+          if (directo && "error" in directo) {
+            setError(directo.error);
+            return;
+          }
+          if (directo) {
+            formData.delete("archivo");
+            formData.set("archivoStoragePath", directo.path);
+            formData.set("archivoMimeType", archivo.type);
+            formData.set("archivoTamano", String(archivo.size));
+          } else if (archivo.size > MAX_UPLOAD_BYTES) {
+            setError(`El archivo pesa demasiado. El tamaño máximo permitido es ${MAX_UPLOAD_LABEL}.`);
+            return;
+          }
+        }
+        const resultado = await crearRecurso(formData);
+        if (resultado?.error) {
+          setError(resultado.error);
+          return;
+        }
         formRef.current?.reset();
       } catch (e) {
         setError((e as Error).message);
@@ -55,7 +77,7 @@ export function RecursoForm({ planificaciones }: { planificaciones: { id: string
         disabled={pending}
         className="w-fit rounded-[10px] bg-primary px-5 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
       >
-        {pending ? "Guardando…" : "Guardar recurso"}
+        {subiendoDirecto ? "Subiendo archivo…" : pending ? "Guardando…" : "Guardar recurso"}
       </button>
     </form>
   );

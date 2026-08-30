@@ -21,6 +21,13 @@ const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
 const usingSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
+// Whether Documentos/Recursos can offer a direct browser -> Storage upload
+// (signed URL) instead of routing the file through a Server Action. Local
+// disk has no equivalent, so this is only ever true alongside usingSupabase.
+export function subidaDirectaDisponible(): boolean {
+  return usingSupabase;
+}
+
 let client: SupabaseClient | null = null;
 function supabase(): SupabaseClient {
   if (!client) {
@@ -48,6 +55,24 @@ async function ensureBucket() {
 // alone is unambiguous.
 export function buildStorageKey(docenteId: string, filename: string, folder?: string): string {
   return [docenteId, folder, `${randomUUID()}-${filename}`].filter(Boolean).join("/");
+}
+
+// Issues a short-lived (2h), single-use signed URL the browser can upload
+// straight to Storage with — the file bytes never pass through a Vercel
+// Serverless Function, so this is how Documentos/Recursos get past the
+// platform's ~4.5MB request body limit. Only callable when usingSupabase.
+export async function crearSubidaFirmada(
+  docenteId: string,
+  filename: string,
+  folder?: string
+): Promise<{ path: string; token: string; bucket: string }> {
+  await ensureBucket();
+  const key = buildStorageKey(docenteId, filename, folder);
+  const { data, error } = await supabase().storage.from(BUCKET).createSignedUploadUrl(key);
+  if (error || !data) {
+    throw new Error(`No se pudo iniciar la subida: ${error?.message ?? "error desconocido"}`);
+  }
+  return { path: data.path, token: data.token, bucket: BUCKET };
 }
 
 export async function uploadFile(key: string, bytes: Buffer, contentType?: string): Promise<void> {

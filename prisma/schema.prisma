@@ -178,6 +178,7 @@ model Documento {
   nombreArchivo String
   mimeType      String
   storagePath   String
+  tamano        Int? // bytes; null on rows uploaded before this column existed
   clasificacion String? // e.g. "Diseño curricular", "Normativa institucional", "Otro"
 
   estado        EstadoDocumento @default(PROCESANDO)
@@ -204,7 +205,25 @@ model Evaluacion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items ItemBanco[]
+  items    ItemBanco[]
+  imagenes EvaluacionImagen[]
+}
+
+// Images the docente inserts inline in the free-write canvas — referenced
+// from Evaluacion.contenido's texto via a `[[img:<id>]]` token on its own
+// line (see src/lib/evaluacion-canvas.ts). Always stored as PNG (normalized
+// on upload) so both the PDF and Word exporters can embed them the same way.
+model EvaluacionImagen {
+  id           String     @id @default(cuid())
+  evaluacionId String
+  evaluacion   Evaluacion @relation(fields: [evaluacionId], references: [id], onDelete: Cascade)
+
+  storagePath String
+  width       Int
+  height      Int
+  tamano      Int? // bytes; null on rows uploaded before this column existed
+
+  createdAt DateTime @default(now())
 }
 
 model ItemBanco {
@@ -238,6 +257,7 @@ model Recurso {
   url         String?
   storagePath String?
   mimeType    String? // set on upload; drives the automatic color-by-type indicator
+  tamano      Int? // bytes; null for link-type recursos and rows uploaded before this column existed
   colorOverride String? // palette id from src/lib/recurso-colors.ts; null = automatic by type
   descripcion String?
   tags        String? // JSON string[]
