@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { eliminarDocumento, reprocesarDocumento } from "@/lib/actions/documentos-actions";
 import { FileIcon } from "@/components/icons";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { ExpandableCard } from "@/components/ui/expandable-card";
 import type { Documento } from "@prisma/client";
 
 const ESTADO: Record<string, { label: string; fg: string; bg: string }> = {
@@ -49,7 +50,7 @@ export function DocumentoRow({
         <ConfirmDeleteButton onDelete={() => eliminarDocumento(documento.id)} />
       </div>
 
-      {open && (
+      <ExpandableCard open={open}>
         <div className="mt-3 rounded-xl bg-surface p-3 text-xs text-text">
           {documento.estado === "ERROR" && <p className="text-danger">{documento.errorMensaje}</p>}
           {documento.estado === "PROCESADO" && (
@@ -57,7 +58,7 @@ export function DocumentoRow({
           )}
           {documento.estado === "PROCESANDO" && <p className="text-text-faint">Procesando el documento…</p>}
         </div>
-      )}
+      </ExpandableCard>
     </div>
   );
 }
