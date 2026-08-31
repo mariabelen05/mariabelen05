@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, type Variants } from "motion/react";
-import { useMemo } from "react";
+import { useMemo, type JSX } from "react";
 
 import { cn } from "@/lib/utils";
 
