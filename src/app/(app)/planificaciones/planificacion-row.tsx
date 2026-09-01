@@ -7,6 +7,7 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ChalkboardIcon, ChevronDownIcon, DownloadIcon, ClipboardIcon, ExternalLinkIcon } from "@/components/icons";
 import { ExpandableCard } from "@/components/ui/expandable-card";
 import { FamilyButton } from "@/components/ui/family-button";
+import { HoverCard } from "@/components/ui/hover-card";
 
 const ESTADO_LABEL: Record<string, { label: string; fg: string; bg: string }> = {
   BORRADOR: { label: "Borrador", fg: "text-text-faint", bg: "bg-surface" },
@@ -54,7 +55,12 @@ export function PlanificacionRow({
             <ChalkboardIcon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13.5px] font-bold text-text">{plan.titulo}</div>
+            <HoverCard
+              className="block min-w-0"
+              trigger={<div className="truncate text-[13.5px] font-bold text-text">{plan.titulo}</div>}
+            >
+              <span className="font-semibold text-text">{plan.titulo}</span>
+            </HoverCard>
             <div className="text-xs text-text-faint">
               {plan.materia ?? "Sin materia"} {plan.curso ? `— ${plan.curso}` : ""}
               {!esCreador && " · Compartida con vos"}
