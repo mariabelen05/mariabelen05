@@ -5,6 +5,7 @@ import Link from "next/link";
 import { registrarDocente } from "@/lib/actions/auth-actions";
 import { Onboarding } from "@/components/ui/onboarding";
 import { MagneticButton } from "@/components/ui/magnetic-button";
+import { AnimatedField } from "@/components/ui/animated-field";
 import { BookIcon, UserIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 const PROVINCIAS = [
@@ -62,17 +63,17 @@ export default function OnboardingPage() {
                   Contanos un poco sobre vos para armar tu espacio de trabajo.
                 </p>
               </div>
-              <Field
+              <AnimatedField
                 label="Nombre completo" name="nombre" placeholder="Marina García" required
-                value={nombre} onChange={setNombre}
+                value={nombre} onChange={(e) => setNombre(e.target.value)}
               />
-              <Field
+              <AnimatedField
                 label="Email" name="email" type="email" placeholder="marina.garcia@mail.com" required
-                value={email} onChange={setEmail}
+                value={email} onChange={(e) => setEmail(e.target.value)}
               />
-              <Field
+              <AnimatedField
                 label="Contraseña" name="password" type="password" placeholder="Mínimo 8 caracteres" required
-                value={password} onChange={setPassword}
+                value={password} onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
