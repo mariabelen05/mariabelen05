@@ -7,6 +7,7 @@ import { Onboarding } from "@/components/ui/onboarding";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { AnimatedField } from "@/components/ui/animated-field";
 import { AnimatedCheckbox } from "@/components/ui/animated-checkbox";
+import { MeshGradient } from "@/components/ui/mesh-gradient";
 import { BookIcon, UserIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 const PROVINCIAS = [
@@ -45,8 +46,9 @@ export default function OnboardingPage() {
   const puedeAvanzarPaso0 = nombre.trim() !== "" && email.trim() !== "" && password.length >= 8;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-app-bg px-4 py-10">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-[0_30px_80px_-30px_rgba(30,35,64,0.25)]">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
+      <MeshGradient />
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-[0_30px_80px_-30px_rgba(30,35,64,0.25)]">
         <div className="mb-6 flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary text-[17px] font-extrabold text-white">
             A
