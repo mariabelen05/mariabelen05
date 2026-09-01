@@ -9,6 +9,7 @@ import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-i
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon, SearchIcon, XIcon, PlusIcon } from "@/components/icons";
 import { HighlightedTextarea, HighlightedInput } from "@/components/highlighted-fields";
+import { SortableList } from "@/components/ui/sortable-list";
 import { countMatches } from "@/lib/text-highlight";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
 
@@ -159,39 +160,61 @@ export function Paso1Editor({
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <h2 className="text-sm font-extrabold text-text">Objetivos específicos</h2>
-        {contenido.objetivosEspecificos.map((o, i) => (
-          <div key={o.id} className="flex items-start gap-2">
-            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <HighlightedTextarea
-              highlight={busqueda}
-              wrapperClassName="flex-1"
-              disabled={readOnly}
-              value={o.texto}
-              onChange={(e) => {
-                const next = [...contenido.objetivosEspecificos];
-                next[i] = { ...o, texto: e.target.value, estado: "editado" };
-                setContenido({ ...contenido, objetivosEspecificos: next });
-              }}
-              rows={2}
-              className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
-            />
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() =>
-                  setContenido({
-                    ...contenido,
-                    objetivosEspecificos: contenido.objetivosEspecificos.filter((_, idx) => idx !== i),
-                  })
-                }
-                aria-label="Quitar objetivo"
-                className="mt-2 shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
+        {readOnly ? (
+          contenido.objetivosEspecificos.map((o) => (
+            <div key={o.id} className="flex items-start gap-2">
+              <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <HighlightedTextarea
+                highlight={busqueda}
+                wrapperClassName="flex-1"
+                disabled
+                value={o.texto}
+                onChange={() => {}}
+                rows={2}
+                className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
+              />
+            </div>
+          ))
+        ) : (
+          <SortableList
+            items={contenido.objetivosEspecificos}
+            getKey={(o) => o.id}
+            onReorder={(next) => setContenido({ ...contenido, objetivosEspecificos: next })}
+            renderItem={(o, dragHandle) => (
+              <div className="flex items-start gap-1.5 bg-card">
+                {dragHandle}
+                <HighlightedTextarea
+                  highlight={busqueda}
+                  wrapperClassName="flex-1"
+                  value={o.texto}
+                  onChange={(e) =>
+                    setContenido({
+                      ...contenido,
+                      objetivosEspecificos: contenido.objetivosEspecificos.map((x) =>
+                        x.id === o.id ? { ...x, texto: e.target.value, estado: "editado" } : x
+                      ),
+                    })
+                  }
+                  rows={2}
+                  className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContenido({
+                      ...contenido,
+                      objetivosEspecificos: contenido.objetivosEspecificos.filter((x) => x.id !== o.id),
+                    })
+                  }
+                  aria-label="Quitar objetivo"
+                  className="mt-2 shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
             )}
-          </div>
-        ))}
+          />
+        )}
         {!readOnly && (
           <button
             type="button"
