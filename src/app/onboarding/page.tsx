@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { registrarDocente } from "@/lib/actions/auth-actions";
 import { Onboarding } from "@/components/ui/onboarding";
+import { MagneticButton } from "@/components/ui/magnetic-button";
 import { BookIcon, UserIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 const PROVINCIAS = [
@@ -191,13 +192,13 @@ export default function OnboardingPage() {
                 Siguiente <ChevronRightIcon className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <button
+              <MagneticButton
                 type="submit"
                 disabled={pending || !aceptaPrivacidad}
                 className="rounded-[11px] bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-hover disabled:opacity-50"
               >
                 {pending ? "Creando cuenta…" : "Crear cuenta"}
-              </button>
+              </MagneticButton>
             )}
           </div>
         </form>
