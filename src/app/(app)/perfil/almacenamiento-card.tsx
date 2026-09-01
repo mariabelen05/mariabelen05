@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "motion/react";
 import { formatearBytes } from "@/lib/storage-usage";
 
 export function AlmacenamientoCard({ usadoBytes, cuotaBytes }: { usadoBytes: number; cuotaBytes: number }) {
@@ -12,9 +15,11 @@ export function AlmacenamientoCard({ usadoBytes, cuotaBytes }: { usadoBytes: num
         las cuentas de Aulera (el plan gratuito de Supabase da 1GB en total para todo el proyecto).
       </p>
       <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-surface">
-        <div
+        <motion.div
           className={`h-full rounded-full ${color}`}
-          style={{ width: `${Math.max(porcentaje, porcentaje > 0 ? 2 : 0)}%` }}
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.max(porcentaje, porcentaje > 0 ? 2 : 0)}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         />
       </div>
       <p className="mt-2 text-xs font-semibold text-text">
