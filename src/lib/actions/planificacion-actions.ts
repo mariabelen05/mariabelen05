@@ -376,3 +376,31 @@ export async function eliminarPlanificacion(planId: string) {
   revalidatePath("/planificaciones");
   redirect("/planificaciones");
 }
+
+// Duplica solo los datos de partida (título, materia, modo, contexto) — no
+// copia lo generado en los pasos, arranca como una planificación nueva.
+export async function duplicarPlanificacion(planId: string) {
+  const { docente, plan } = await getPlanConAcceso(planId);
+
+  const copia = await prisma.planificacion.create({
+    data: {
+      titulo: `${plan.titulo} (copia)`,
+      docenteId: docente.id,
+      materia: plan.materia,
+      curso: plan.curso,
+      division: plan.division,
+      provincia: plan.provincia,
+      modalidad: plan.modalidad,
+      modo: plan.modo,
+      institucion: plan.institucion,
+      localidad: plan.localidad,
+      contextoLibre: plan.contextoLibre,
+      contextoGrupo: plan.contextoGrupo,
+      estado: "EN_PROGRESO",
+    },
+  });
+
+  await registrarActividad(copia.id, docente.id, "general", "creo_planificacion");
+  revalidatePath("/planificaciones");
+  redirect(`/planificaciones/${copia.id}/paso-1`);
+}

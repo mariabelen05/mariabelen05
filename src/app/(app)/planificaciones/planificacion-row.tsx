@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { eliminarPlanificacion } from "@/lib/actions/planificacion-actions";
+import { eliminarPlanificacion, duplicarPlanificacion } from "@/lib/actions/planificacion-actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
-import { ChalkboardIcon, ChevronDownIcon } from "@/components/icons";
+import { ChalkboardIcon, ChevronDownIcon, DownloadIcon, ClipboardIcon, ExternalLinkIcon } from "@/components/icons";
 import { ExpandableCard } from "@/components/ui/expandable-card";
+import { FamilyButton } from "@/components/ui/family-button";
 
 const ESTADO_LABEL: Record<string, { label: string; fg: string; bg: string }> = {
   BORRADOR: { label: "Borrador", fg: "text-text-faint", bg: "bg-surface" },
@@ -28,7 +29,19 @@ export function PlanificacionRow({
   esCreador: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [, startTransition] = useTransition();
   const estado = ESTADO_LABEL[plan.estado];
+
+  const compartir = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/planificaciones/${plan.id}`);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1800);
+    } catch {
+      // portapapeles no disponible (permiso denegado, contexto no seguro) — no rompemos la UI
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -53,9 +66,33 @@ export function PlanificacionRow({
             className={`h-4 w-4 shrink-0 text-text-faint transition-transform ${open ? "rotate-180" : ""}`}
           />
         </div>
+        {copiado && <span className="shrink-0 text-[11px] font-bold text-success">¡Link copiado!</span>}
         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${estado.fg} ${estado.bg}`}>
           {estado.label}
         </span>
+        <FamilyButton
+          actions={[
+            {
+              key: "exportar",
+              label: plan.estado === "FINALIZADA" ? "Exportar PDF" : "Exportar (completá los 4 pasos primero)",
+              icon: <DownloadIcon className="h-3.5 w-3.5" />,
+              disabled: plan.estado !== "FINALIZADA",
+              onClick: () => window.open(`/api/planificaciones/${plan.id}/export?format=pdf`, "_blank"),
+            },
+            {
+              key: "duplicar",
+              label: "Duplicar",
+              icon: <ClipboardIcon className="h-3.5 w-3.5" />,
+              onClick: () => startTransition(() => duplicarPlanificacion(plan.id)),
+            },
+            {
+              key: "compartir",
+              label: "Copiar link",
+              icon: <ExternalLinkIcon className="h-3.5 w-3.5" />,
+              onClick: compartir,
+            },
+          ]}
+        />
         {esCreador && (
           <ConfirmDeleteButton
             onDelete={() => eliminarPlanificacion(plan.id)}
