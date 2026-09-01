@@ -6,6 +6,7 @@ import { registrarDocente } from "@/lib/actions/auth-actions";
 import { Onboarding } from "@/components/ui/onboarding";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { AnimatedField } from "@/components/ui/animated-field";
+import { AnimatedCheckbox } from "@/components/ui/animated-checkbox";
 import { BookIcon, UserIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 const PROVINCIAS = [
@@ -144,8 +145,7 @@ export default function OnboardingPage() {
               </label>
 
               <label className="flex items-start gap-2 text-xs text-text-faint">
-                <input
-                  type="checkbox"
+                <AnimatedCheckbox
                   name="aceptaPrivacidad"
                   required
                   checked={aceptaPrivacidad}
