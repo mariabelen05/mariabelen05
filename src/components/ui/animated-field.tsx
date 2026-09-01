@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import type { InputHTMLAttributes } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-interface AnimatedFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+interface AnimatedFieldProps extends ComponentPropsWithoutRef<typeof motion.input> {
   label: string;
   hint?: string;
 }
