@@ -84,9 +84,10 @@ export function AppShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-app-bg">
+    <div className="flex h-screen w-full bg-app-bg">
       <div className="hidden border-r border-border lg:block">
         <Sidebar pathname={pathname} />
       </div>
@@ -100,8 +101,17 @@ export function AppShell({
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[72px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 sm:px-7">
+      <div
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
+      >
+        <div
+          className={`sticky top-0 z-10 flex h-[72px] shrink-0 items-center justify-between gap-4 border-b px-4 transition-all duration-200 sm:px-7 ${
+            scrolled
+              ? "border-border bg-surface/75 shadow-[0_4px_20px_-8px_rgba(30,35,64,0.15)] backdrop-blur-md"
+              : "border-transparent bg-surface"
+          }`}
+        >
           <button
             className="rounded-[9px] bg-card p-2 lg:hidden"
             onClick={() => setMobileOpen(true)}
@@ -168,7 +178,7 @@ export function AppShell({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-7">{children}</div>
+        <div className="p-4 sm:p-7">{children}</div>
       </div>
     </div>
   );
