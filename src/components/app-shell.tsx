@@ -9,6 +9,7 @@ import {
   CalendarIcon, GearIcon, BellIcon, SearchIcon, ChevronDownIcon, MenuIcon,
 } from "@/components/icons";
 import { signOutAction } from "@/lib/actions/session-actions";
+import { Dock, DockIcon } from "@/components/ui/dock";
 
 const NAV_ITEMS = [
   { key: "inicio", label: "Inicio", href: "/", Icon: HomeIcon },
@@ -39,7 +40,7 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
         <div className="text-[19px] font-extrabold tracking-tight text-text">Aulera</div>
       </div>
 
-      <nav className="flex flex-col gap-0.5">
+      <Dock className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           return (
@@ -51,12 +52,14 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                 active ? "bg-purple-soft font-bold text-primary" : "font-semibold text-text-faint hover:bg-surface"
               }`}
             >
-              <item.Icon className="h-5 w-5 shrink-0" />
+              <DockIcon className="shrink-0">
+                <item.Icon className="h-5 w-5" />
+              </DockIcon>
               {item.label}
             </Link>
           );
         })}
-      </nav>
+      </Dock>
 
       <div className="flex-1" />
 
