@@ -21,7 +21,18 @@ export default async function BuscarPage({
   const [planificaciones, documentos, recursos, evaluaciones] = query
     ? await Promise.all([
         prisma.planificacion.findMany({
-          where: { docenteId: docente.id, titulo: { contains: query, mode: "insensitive" } },
+          where: {
+            docenteId: docente.id,
+            OR: [
+              { titulo: { contains: query, mode: "insensitive" } },
+              { contextoLibre: { contains: query, mode: "insensitive" } },
+              { contextoGrupo: { contains: query, mode: "insensitive" } },
+              { objetivosContenidos: { contains: query, mode: "insensitive" } },
+              { metodologiaActividades: { contains: query, mode: "insensitive" } },
+              { instrumentoEvaluacion: { contains: query, mode: "insensitive" } },
+              { resultadoFinal: { contains: query, mode: "insensitive" } },
+            ],
+          },
           select: { id: true, titulo: true, materia: true, curso: true, estado: true, updatedAt: true },
           orderBy: { updatedAt: "desc" },
           take: 20,
@@ -76,16 +87,21 @@ export default async function BuscarPage({
 
       {planificaciones.length > 0 && (
         <ResultSection titulo="Planificaciones" Icon={FolderIcon} count={planificaciones.length}>
-          {planificaciones.map((p) => (
-            <ResultRow
-              key={p.id}
-              href={`/planificaciones/${p.id}`}
-              titulo={p.titulo}
-              subtitulo={[p.materia, p.curso].filter(Boolean).join(" · ") || undefined}
-              meta={ESTADO_LABEL[p.estado] ?? p.estado}
-              fecha={p.updatedAt}
-            />
-          ))}
+          {planificaciones.map((p) => {
+            const coincideEnTitulo = p.titulo.toLowerCase().includes(query.toLowerCase());
+            return (
+              <ResultRow
+                key={p.id}
+                href={`/planificaciones/${p.id}`}
+                titulo={p.titulo}
+                subtitulo={[p.materia, p.curso].filter(Boolean).join(" · ") || undefined}
+                meta={[ESTADO_LABEL[p.estado] ?? p.estado, coincideEnTitulo ? null : "Coincide en el contenido"]
+                  .filter(Boolean)
+                  .join(" · ")}
+                fecha={p.updatedAt}
+              />
+            );
+          })}
         </ResultSection>
       )}
 
