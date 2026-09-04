@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { SparkleIcon } from "@/components/icons";
 import { TextAnimate } from "@/components/ui/text-animate";
+import { mensajeError } from "@/lib/error-message";
 import type { ChatMensaje } from "@/lib/planificacion-types";
 
 export function AssistantPanel({
@@ -34,7 +35,7 @@ export function AssistantPanel({
       } catch (err) {
         setLocalChat((c) => [
           ...c,
-          { from: "aulera", texto: `No pude aplicar el ajuste: ${(err as Error).message}` },
+          { from: "aulera", texto: mensajeError(err, "aplicar el ajuste") },
         ]);
       }
     });

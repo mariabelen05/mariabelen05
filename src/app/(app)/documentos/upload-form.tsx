@@ -6,6 +6,7 @@ import { iniciarSubidaDirecta } from "@/lib/actions/upload-actions";
 import { subirArchivoDirecto } from "@/lib/upload-direct";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import { UploadIcon } from "@/components/icons";
+import { mensajeError } from "@/lib/error-message";
 
 export function UploadForm({ planificaciones }: { planificaciones: { id: string; titulo: string }[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -44,7 +45,7 @@ export function UploadForm({ planificaciones }: { planificaciones: { id: string;
         }
         formRef.current?.reset();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "subir el documento"));
       }
     });
   };

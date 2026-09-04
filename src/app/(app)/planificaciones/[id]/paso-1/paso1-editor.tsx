@@ -11,6 +11,7 @@ import { SparkleIcon, SearchIcon, XIcon, PlusIcon } from "@/components/icons";
 import { HighlightedTextarea, HighlightedInput } from "@/components/highlighted-fields";
 import { SortableList } from "@/components/ui/sortable-list";
 import { countMatches } from "@/lib/text-highlight";
+import { mensajeError } from "@/lib/error-message";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
 
 export function Paso1Editor({
@@ -45,7 +46,7 @@ export function Paso1Editor({
         await generarPaso1(planId);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -57,7 +58,7 @@ export function Paso1Editor({
       try {
         await guardarPaso1(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };

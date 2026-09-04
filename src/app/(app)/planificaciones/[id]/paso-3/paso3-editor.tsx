@@ -11,6 +11,7 @@ import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-i
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon, CheckIcon, AlertIcon, XIcon, PlusIcon } from "@/components/icons";
 import type { InstrumentoEvaluacion, CoherenciaReporte } from "@/lib/planificacion-types";
+import { mensajeError } from "@/lib/error-message";
 
 const TIPOS = ["Diagnóstica", "Formativa", "Sumativa"];
 
@@ -48,7 +49,7 @@ export function Paso3Editor({
         await generarPaso3(planId, tipos);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -60,7 +61,7 @@ export function Paso3Editor({
       try {
         await guardarPaso3(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
@@ -72,7 +73,7 @@ export function Paso3Editor({
         await verificarCoherenciaAction(planId);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "verificar la coherencia"));
       }
     });
   };

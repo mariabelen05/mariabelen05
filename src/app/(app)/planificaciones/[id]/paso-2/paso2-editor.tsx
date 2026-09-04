@@ -8,6 +8,7 @@ import { BorradorRecuperadoBanner } from "@/components/planificacion/sync-status
 import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-island";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon } from "@/components/icons";
+import { mensajeError } from "@/lib/error-message";
 import type { MetodologiaActividades, Actividad } from "@/lib/planificacion-types";
 
 const RECURSOS = [
@@ -47,7 +48,7 @@ export function Paso2Editor({
         await generarPaso2(planId, recursos);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -59,7 +60,7 @@ export function Paso2Editor({
       try {
         await guardarPaso2(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
