@@ -6,9 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   HomeIcon, FolderIcon, PlusIcon, FileIcon, ArchiveIcon, CheckIcon,
-  CalendarIcon, GearIcon, BellIcon, SearchIcon, ChevronDownIcon, MenuIcon,
+  CalendarIcon, GearIcon, BellIcon, SearchIcon, XIcon, ChevronDownIcon, MenuIcon,
 } from "@/components/icons";
 import { signOutAction } from "@/lib/actions/session-actions";
+import { Dock, DockIcon } from "@/components/ui/dock";
 
 const NAV_ITEMS = [
   { key: "inicio", label: "Inicio", href: "/", Icon: HomeIcon },
@@ -39,7 +40,7 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
         <div className="text-[19px] font-extrabold tracking-tight text-text">Aulera</div>
       </div>
 
-      <nav className="flex flex-col gap-0.5">
+      <Dock className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           return (
@@ -51,12 +52,14 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                 active ? "bg-purple-soft font-bold text-primary" : "font-semibold text-text-faint hover:bg-surface"
               }`}
             >
-              <item.Icon className="h-5 w-5 shrink-0" />
+              <DockIcon className="shrink-0">
+                <item.Icon className="h-5 w-5" />
+              </DockIcon>
               {item.label}
             </Link>
           );
         })}
-      </nav>
+      </Dock>
 
       <div className="flex-1" />
 
@@ -81,9 +84,17 @@ export function AppShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const onBuscar = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (q) router.push(`/buscar?q=${encodeURIComponent(q)}`);
+  };
 
   return (
-    <div className="flex min-h-screen w-full bg-app-bg">
+    <div className="flex h-screen w-full bg-app-bg">
       <div className="hidden border-r border-border lg:block">
         <Sidebar pathname={pathname} />
       </div>
@@ -97,8 +108,17 @@ export function AppShell({
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[72px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 sm:px-7">
+      <div
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
+      >
+        <div
+          className={`sticky top-0 z-10 flex h-[72px] shrink-0 items-center justify-between gap-4 border-b px-4 transition-all duration-200 sm:px-7 ${
+            scrolled
+              ? "border-border bg-surface/75 shadow-[0_4px_20px_-8px_rgba(30,35,64,0.15)] backdrop-blur-md"
+              : "border-transparent bg-surface"
+          }`}
+        >
           <button
             className="rounded-[9px] bg-card p-2 lg:hidden"
             onClick={() => setMobileOpen(true)}
@@ -107,12 +127,29 @@ export function AppShell({
             <MenuIcon className="h-4 w-4 text-text" />
           </button>
 
-          <div className="hidden w-[360px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5 sm:flex">
-            <SearchIcon className="h-[17px] w-[17px] text-text-faint" />
-            <span className="text-[13.5px] text-text-faint">
-              Buscar planificaciones, documentos, recursos...
-            </span>
-          </div>
+          <form
+            onSubmit={onBuscar}
+            className="hidden w-[360px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5 sm:flex"
+          >
+            <SearchIcon className="h-[17px] w-[17px] shrink-0 text-text-faint" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar planificaciones, documentos, recursos..."
+              className="w-full bg-transparent text-[13.5px] text-text placeholder:text-text-faint focus:outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Limpiar búsqueda"
+                className="shrink-0 text-text-faint hover:text-text"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            )}
+          </form>
 
           <div className="flex items-center gap-4 sm:gap-[18px]">
             <div className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-card">
@@ -165,7 +202,7 @@ export function AppShell({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-7">{children}</div>
+        <div className="p-4 sm:p-7">{children}</div>
       </div>
     </div>
   );

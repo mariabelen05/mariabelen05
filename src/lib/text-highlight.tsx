@@ -1,3 +1,5 @@
+import { Highlight } from "@/components/ui/highlighter";
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -20,13 +22,15 @@ export function renderHighlighted(text: string, term: string): React.ReactNode {
   const re = new RegExp(`(${escapeRegExp(t)})`, "gi");
   const parts = text.split(re);
   if (parts.length <= 1) return text;
-  return parts.map((part, i) =>
-    i % 2 === 1 ? (
-      <mark key={i} className="rounded-[3px] bg-highlight text-inherit">
+  let matchIndex = 0;
+  return parts.map((part, i) => {
+    if (i % 2 !== 1) return part;
+    const delay = Math.min(matchIndex, 8) * 0.03;
+    matchIndex += 1;
+    return (
+      <Highlight key={i} delay={delay}>
         {part}
-      </mark>
-    ) : (
-      part
-    )
-  );
+      </Highlight>
+    );
+  });
 }

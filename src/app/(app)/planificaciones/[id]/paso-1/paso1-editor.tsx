@@ -4,11 +4,14 @@ import { useState, useTransition } from "react";
 import { generarPaso1, ajustarPaso1, guardarPaso1 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
-import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-island";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon, SearchIcon, XIcon, PlusIcon } from "@/components/icons";
 import { HighlightedTextarea, HighlightedInput } from "@/components/highlighted-fields";
+import { SortableList } from "@/components/ui/sortable-list";
 import { countMatches } from "@/lib/text-highlight";
+import { mensajeError } from "@/lib/error-message";
 import type { ObjetivosContenidos } from "@/lib/planificacion-types";
 
 export function Paso1Editor({
@@ -23,7 +26,9 @@ export function Paso1Editor({
   readOnly: boolean;
 }) {
   const [contenido, setContenido] = useState(initialContenido);
-  const [pending, startTransition] = useTransition();
+  const [iaPending, startIaTransition] = useTransition();
+  const [guardarPending, startGuardarTransition] = useTransition();
+  const pending = iaPending || guardarPending;
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -36,12 +41,12 @@ export function Paso1Editor({
 
   const generar = () => {
     setError(null);
-    startTransition(async () => {
+    startIaTransition(async () => {
       try {
         await generarPaso1(planId);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -49,11 +54,11 @@ export function Paso1Editor({
   const guardar = (aprobar: boolean) => {
     if (!contenido) return;
     setError(null);
-    startTransition(async () => {
+    startGuardarTransition(async () => {
       try {
         await guardarPaso1(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
@@ -71,6 +76,7 @@ export function Paso1Editor({
   if (!contenido) {
     return (
       <div className="flex flex-col gap-4">
+        {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
         {banner}
         <div className="flex flex-col items-center gap-4 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-14 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-[13px] bg-purple-soft text-purple">
@@ -105,10 +111,10 @@ export function Paso1Editor({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
       {banner}
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 1 · Objetivos y contenidos</h2>
-        {!readOnly && <SyncStatusBadge status={status} />}
       </div>
 
       <div className="flex items-center gap-2 rounded-[10px] border border-border bg-surface px-3 py-2 sm:w-80">
@@ -155,39 +161,61 @@ export function Paso1Editor({
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <h2 className="text-sm font-extrabold text-text">Objetivos específicos</h2>
-        {contenido.objetivosEspecificos.map((o, i) => (
-          <div key={o.id} className="flex items-start gap-2">
-            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <HighlightedTextarea
-              highlight={busqueda}
-              wrapperClassName="flex-1"
-              disabled={readOnly}
-              value={o.texto}
-              onChange={(e) => {
-                const next = [...contenido.objetivosEspecificos];
-                next[i] = { ...o, texto: e.target.value, estado: "editado" };
-                setContenido({ ...contenido, objetivosEspecificos: next });
-              }}
-              rows={2}
-              className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
-            />
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() =>
-                  setContenido({
-                    ...contenido,
-                    objetivosEspecificos: contenido.objetivosEspecificos.filter((_, idx) => idx !== i),
-                  })
-                }
-                aria-label="Quitar objetivo"
-                className="mt-2 shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
+        {readOnly ? (
+          contenido.objetivosEspecificos.map((o) => (
+            <div key={o.id} className="flex items-start gap-2">
+              <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <HighlightedTextarea
+                highlight={busqueda}
+                wrapperClassName="flex-1"
+                disabled
+                value={o.texto}
+                onChange={() => {}}
+                rows={2}
+                className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
+              />
+            </div>
+          ))
+        ) : (
+          <SortableList
+            items={contenido.objetivosEspecificos}
+            getKey={(o) => o.id}
+            onReorder={(next) => setContenido({ ...contenido, objetivosEspecificos: next })}
+            renderItem={(o, dragHandle) => (
+              <div className="flex items-start gap-1.5 bg-card">
+                {dragHandle}
+                <HighlightedTextarea
+                  highlight={busqueda}
+                  wrapperClassName="flex-1"
+                  value={o.texto}
+                  onChange={(e) =>
+                    setContenido({
+                      ...contenido,
+                      objetivosEspecificos: contenido.objetivosEspecificos.map((x) =>
+                        x.id === o.id ? { ...x, texto: e.target.value, estado: "editado" } : x
+                      ),
+                    })
+                  }
+                  rows={2}
+                  className="resize-none rounded-[11px] border border-border bg-surface px-3.5 py-2 text-sm outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContenido({
+                      ...contenido,
+                      objetivosEspecificos: contenido.objetivosEspecificos.filter((x) => x.id !== o.id),
+                    })
+                  }
+                  aria-label="Quitar objetivo"
+                  className="mt-2 shrink-0 rounded-full p-1 text-text-faint hover:bg-danger-soft hover:text-danger"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
             )}
-          </div>
-        ))}
+          />
+        )}
         {!readOnly && (
           <button
             type="button"

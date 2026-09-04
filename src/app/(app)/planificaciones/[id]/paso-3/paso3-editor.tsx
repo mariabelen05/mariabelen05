@@ -6,10 +6,12 @@ import {
 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
-import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-island";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon, CheckIcon, AlertIcon, XIcon, PlusIcon } from "@/components/icons";
 import type { InstrumentoEvaluacion, CoherenciaReporte } from "@/lib/planificacion-types";
+import { mensajeError } from "@/lib/error-message";
 
 const TIPOS = ["Diagnóstica", "Formativa", "Sumativa"];
 
@@ -27,7 +29,9 @@ export function Paso3Editor({
   const [tipos, setTipos] = useState<string[]>(initialContenido?.tiposEvaluacion ?? ["Formativa", "Sumativa"]);
   const [contenido, setContenido] = useState(initialContenido);
   const [coherencia] = useState(initialCoherencia);
-  const [pending, startTransition] = useTransition();
+  const [iaPending, startIaTransition] = useTransition();
+  const [guardarPending, startGuardarTransition] = useTransition();
+  const pending = iaPending || guardarPending;
   const [checking, startChecking] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -40,12 +44,12 @@ export function Paso3Editor({
 
   const generar = () => {
     setError(null);
-    startTransition(async () => {
+    startIaTransition(async () => {
       try {
         await generarPaso3(planId, tipos);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -53,11 +57,11 @@ export function Paso3Editor({
   const guardar = (aprobar: boolean) => {
     if (!contenido) return;
     setError(null);
-    startTransition(async () => {
+    startGuardarTransition(async () => {
       try {
         await guardarPaso3(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
@@ -69,7 +73,7 @@ export function Paso3Editor({
         await verificarCoherenciaAction(planId);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "verificar la coherencia"));
       }
     });
   };
@@ -90,6 +94,7 @@ export function Paso3Editor({
   if (!contenido) {
     return (
       <div className="flex flex-col gap-4">
+      {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
       {banner}
       <div className="flex flex-col gap-5 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -131,10 +136,10 @@ export function Paso3Editor({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
       {banner}
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 3 · Evaluación y coherencia</h2>
-        {!readOnly && <SyncStatusBadge status={status} />}
       </div>
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">

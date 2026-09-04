@@ -5,6 +5,7 @@ import {
   invitarColaborador, cambiarRolColaborador, quitarColaborador,
 } from "@/lib/actions/planificacion-actions";
 import { UserIcon } from "@/components/icons";
+import { mensajeError } from "@/lib/error-message";
 import type { PlanCollaborator } from "@prisma/client";
 
 export function ColaboradoresPanel({
@@ -30,7 +31,7 @@ export function ColaboradoresPanel({
         await invitarColaborador(planId, email, rol);
         setEmail("");
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "enviar la invitación"));
       }
     });
   };

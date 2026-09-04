@@ -95,18 +95,33 @@ export default async function DashboardPage() {
 
         <div className="flex flex-col gap-3.5">
           <div className="text-base font-extrabold text-text">Accesos rápidos</div>
-          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
-            {QUICK_ACCESS.map((q) => (
+          {/* Bento: la primera tarjeta ("Planificación anual") ocupa 2x2 en
+              pantallas sm+, el resto se acomoda alrededor; en mobile vuelve
+              a ser una grilla pareja de 2 columnas. */}
+          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 sm:grid-rows-2">
+            {QUICK_ACCESS.map((q, i) => (
               <Link
                 key={q.title}
                 href={q.href}
-                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4"
+                className={`flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 ${
+                  i === 0
+                    ? "sm:col-span-2 sm:row-span-2 sm:justify-center sm:p-6"
+                    : i === 1
+                    ? "sm:col-span-2"
+                    : ""
+                }`}
               >
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${q.bg} ${q.fg}`}>
-                  <q.Icon className="h-5 w-5" />
+                <div
+                  className={`flex items-center justify-center rounded-xl ${q.bg} ${q.fg} ${
+                    i === 0 ? "h-14 w-14" : "h-11 w-11"
+                  }`}
+                >
+                  <q.Icon className={i === 0 ? "h-6 w-6" : "h-5 w-5"} />
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <div className="text-[13.5px] font-bold text-text">{q.title}</div>
+                  <div className={`font-bold text-text ${i === 0 ? "text-[15.5px]" : "text-[13.5px]"}`}>
+                    {q.title}
+                  </div>
                   <div className="text-xs leading-snug text-text-faint">{q.subtitle}</div>
                 </div>
               </Link>

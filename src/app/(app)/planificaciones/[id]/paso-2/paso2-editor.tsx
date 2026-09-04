@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import { generarPaso2, ajustarPaso2, guardarPaso2 } from "@/lib/actions/planificacion-actions";
 import { SuggestionBadge } from "@/components/planificacion/step-layout";
 import { AssistantPanel } from "@/components/planificacion/assistant-panel";
-import { SyncStatusBadge, BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { BorradorRecuperadoBanner } from "@/components/planificacion/sync-status";
+import { AmbientStatusIsland } from "@/components/planificacion/ambient-status-island";
 import { useOfflineDraft } from "@/lib/offline/use-offline-draft";
 import { SparkleIcon } from "@/components/icons";
+import { mensajeError } from "@/lib/error-message";
 import type { MetodologiaActividades, Actividad } from "@/lib/planificacion-types";
 
 const RECURSOS = [
@@ -27,7 +29,9 @@ export function Paso2Editor({
     initialContenido?.recursosDisponibles ?? ["Pizarrón"]
   );
   const [contenido, setContenido] = useState(initialContenido);
-  const [pending, startTransition] = useTransition();
+  const [iaPending, startIaTransition] = useTransition();
+  const [guardarPending, startGuardarTransition] = useTransition();
+  const pending = iaPending || guardarPending;
   const [error, setError] = useState<string | null>(null);
 
   const { status, borradorRecuperado, descartarBorradorRecuperado } = useOfflineDraft(
@@ -39,12 +43,12 @@ export function Paso2Editor({
 
   const generar = () => {
     setError(null);
-    startTransition(async () => {
+    startIaTransition(async () => {
       try {
         await generarPaso2(planId, recursos);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar la propuesta"));
       }
     });
   };
@@ -52,11 +56,11 @@ export function Paso2Editor({
   const guardar = (aprobar: boolean) => {
     if (!contenido) return;
     setError(null);
-    startTransition(async () => {
+    startGuardarTransition(async () => {
       try {
         await guardarPaso2(planId, contenido, aprobar);
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
@@ -77,6 +81,7 @@ export function Paso2Editor({
   if (!contenido) {
     return (
       <div className="flex flex-col gap-4">
+      {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
       {banner}
       <div className="flex flex-col gap-5 rounded-2xl border-[1.5px] border-dashed border-[#D9D7F0] bg-card px-6 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -124,10 +129,10 @@ export function Paso2Editor({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {!readOnly && <AmbientStatusIsland status={status} iaGenerando={iaPending} />}
       {banner}
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wide text-text-faint">Paso 2 · Metodología y actividades</h2>
-        {!readOnly && <SyncStatusBadge status={status} />}
       </div>
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">

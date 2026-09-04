@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { eliminarDocumento, reprocesarDocumento } from "@/lib/actions/documentos-actions";
 import { FileIcon } from "@/components/icons";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { ExpandableCard } from "@/components/ui/expandable-card";
+import { HoverCard } from "@/components/ui/hover-card";
 import type { Documento } from "@prisma/client";
 
 const ESTADO: Record<string, { label: string; fg: string; bg: string }> = {
@@ -28,7 +30,12 @@ export function DocumentoRow({
           <FileIcon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setOpen((v) => !v)}>
-          <div className="truncate text-[13.5px] font-bold text-text">{documento.nombreArchivo}</div>
+          <HoverCard
+            className="block min-w-0"
+            trigger={<div className="truncate text-[13.5px] font-bold text-text">{documento.nombreArchivo}</div>}
+          >
+            <span className="font-semibold text-text">{documento.nombreArchivo}</span>
+          </HoverCard>
           <div className="truncate text-xs text-text-faint">
             {documento.clasificacion ?? "Sin clasificar"}
             {documento.planificacion && ` · ${documento.planificacion.titulo}`}
@@ -49,7 +56,7 @@ export function DocumentoRow({
         <ConfirmDeleteButton onDelete={() => eliminarDocumento(documento.id)} />
       </div>
 
-      {open && (
+      <ExpandableCard open={open}>
         <div className="mt-3 rounded-xl bg-surface p-3 text-xs text-text">
           {documento.estado === "ERROR" && <p className="text-danger">{documento.errorMensaje}</p>}
           {documento.estado === "PROCESADO" && (
@@ -57,7 +64,7 @@ export function DocumentoRow({
           )}
           {documento.estado === "PROCESANDO" && <p className="text-text-faint">Procesando el documento…</p>}
         </div>
-      )}
+      </ExpandableCard>
     </div>
   );
 }

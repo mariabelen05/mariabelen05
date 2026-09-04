@@ -13,6 +13,7 @@ import { SparkleIcon, UploadIcon, DownloadIcon, XIcon } from "@/components/icons
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 import { segmentarContenido, unirSegmentos, insertarImagenEnSegmentos } from "@/lib/evaluacion-canvas";
 import type { EvaluacionContenido } from "@/lib/evaluacion-types";
+import { mensajeError } from "@/lib/error-message";
 
 const VACIO: EvaluacionContenido = { texto: "", estado: "editado", chat: [] };
 
@@ -46,7 +47,7 @@ export function EvaluacionEditor({
         await generarContenidoEvaluacionAction(evaluacionId);
         window.location.reload();
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "generar el contenido"));
       }
     });
   };
@@ -58,7 +59,7 @@ export function EvaluacionEditor({
         await guardarContenidoEvaluacionAction(evaluacionId, contenido, aprobar);
         if (aprobar) setContenido((c) => ({ ...c, estado: "aprobado" }));
       } catch (e) {
-        setError((e as Error).message);
+        setError(mensajeError(e, "guardar los cambios"));
       }
     });
   };
@@ -84,7 +85,7 @@ export function EvaluacionEditor({
       const segmentos = insertarImagenEnSegmentos(segmentarContenido(contenido.texto), lastFocusRef.current, resultado.id);
       setContenido({ ...contenido, texto: unirSegmentos(segmentos), estado: "editado" });
     } catch (err) {
-      setError((err as Error).message);
+      setError(mensajeError(err, "subir la imagen"));
     } finally {
       setUploadingImagen(false);
     }

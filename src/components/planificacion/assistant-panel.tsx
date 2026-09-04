@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { SparkleIcon } from "@/components/icons";
+import { TextAnimate } from "@/components/ui/text-animate";
+import { mensajeError } from "@/lib/error-message";
 import type { ChatMensaje } from "@/lib/planificacion-types";
 
 export function AssistantPanel({
@@ -17,6 +19,9 @@ export function AssistantPanel({
   const [draft, setDraft] = useState("");
   const [localChat, setLocalChat] = useState<ChatMensaje[]>(chat);
   const [pending, startTransition] = useTransition();
+  // Mensajes de historial (ya cargados al montar) se muestran tal cual;
+  // solo las respuestas nuevas de esta sesión "se escriben" con TextAnimate.
+  const [historialCount] = useState(chat.length);
 
   const enviar = () => {
     const mensaje = draft.trim();
@@ -30,7 +35,7 @@ export function AssistantPanel({
       } catch (err) {
         setLocalChat((c) => [
           ...c,
-          { from: "aulera", texto: `No pude aplicar el ajuste: ${(err as Error).message}` },
+          { from: "aulera", texto: mensajeError(err, "aplicar el ajuste") },
         ]);
       }
     });
@@ -74,7 +79,13 @@ export function AssistantPanel({
               m.from === "user" ? "ml-auto bg-primary text-white" : "bg-surface text-text"
             }`}
           >
-            {m.texto}
+            {m.from === "aulera" && i >= historialCount ? (
+              <TextAnimate as="span" by="word" animation="fadeIn" duration={0.18} className="whitespace-pre-wrap">
+                {m.texto}
+              </TextAnimate>
+            ) : (
+              m.texto
+            )}
           </div>
         ))}
         {pending && <div className="text-xs text-text-faint">Aulera está pensando…</div>}
