@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   HomeIcon, FolderIcon, PlusIcon, FileIcon, ArchiveIcon, CheckIcon,
-  CalendarIcon, GearIcon, BellIcon, SearchIcon, ChevronDownIcon, MenuIcon,
+  CalendarIcon, GearIcon, BellIcon, SearchIcon, XIcon, ChevronDownIcon, MenuIcon,
 } from "@/components/icons";
 import { signOutAction } from "@/lib/actions/session-actions";
 import { Dock, DockIcon } from "@/components/ui/dock";
@@ -85,6 +85,13 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const onBuscar = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (q) router.push(`/buscar?q=${encodeURIComponent(q)}`);
+  };
 
   return (
     <div className="flex h-screen w-full bg-app-bg">
@@ -120,12 +127,29 @@ export function AppShell({
             <MenuIcon className="h-4 w-4 text-text" />
           </button>
 
-          <div className="hidden w-[360px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5 sm:flex">
-            <SearchIcon className="h-[17px] w-[17px] text-text-faint" />
-            <span className="text-[13.5px] text-text-faint">
-              Buscar planificaciones, documentos, recursos...
-            </span>
-          </div>
+          <form
+            onSubmit={onBuscar}
+            className="hidden w-[360px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5 sm:flex"
+          >
+            <SearchIcon className="h-[17px] w-[17px] shrink-0 text-text-faint" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar planificaciones, documentos, recursos..."
+              className="w-full bg-transparent text-[13.5px] text-text placeholder:text-text-faint focus:outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Limpiar búsqueda"
+                className="shrink-0 text-text-faint hover:text-text"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            )}
+          </form>
 
           <div className="flex items-center gap-4 sm:gap-[18px]">
             <div className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-card">
